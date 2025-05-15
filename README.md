@@ -64,11 +64,11 @@ Navigate to `http://localhost:3000` in your browser.
 
 | Feature             | Description |
 |---------------------|-------------|
-| 🔄 Typing Status    | Bot simulates "is typing..." before replying |
+| 🔄 Typing Status | Bot typing simulation before reply |
 | 🧠 Sentiment Response | Responds with comforting or happy replies based on keywords |
 | 🧾 Message Time Tags | Every message is timestamped |
 | 🌐 Firebase Hosting | Easy deployment and scaling |
-| 💡 Minimal & Modern UI | Clean chat bubble design with auto-scroll |
+| 💡 Minimal & Modern UI | Clean chat bubble design with auto-scroll | Toggle between Dark & Light modes |
 
 ---
 
