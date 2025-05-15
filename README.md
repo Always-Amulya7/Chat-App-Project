@@ -22,7 +22,7 @@ The design is **simple**, **clean**, and focuses on **human-like chat** interact
 - 💡 **Typing Indicators (Simulated)**
 - 😊 **Emotion-Sensitive Replies (Keyword-Based)**
 - 📱 **Responsive UI (Mobile Friendly)**
-
+- 🌗 **Toggle Light and Dark Mode**
 ---
 
 ## 🎬 **Getting Started**
