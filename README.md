@@ -38,21 +38,7 @@ cd firebase-chat-app
 npm install
 ```
 
-### 3. **Configure Firebase**
-Create a Firebase project and add your credentials to:
-```js
-// src/firebase.js
-const firebaseConfig = {
-  apiKey: "...",
-  authDomain: "...",
-  projectId: "...",
-  storageBucket: "...",
-  messagingSenderId: "...",
-  appId: "..."
-};
-```
-
-### 4. **Run the App Locally**
+### 3. **Run the App Locally**
 ```bash
 npm start
 ```
