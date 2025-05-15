@@ -1,0 +1,198 @@
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  transition: background 0.4s;
+}
+body.dark {
+  background: linear-gradient(135deg, #232526 0%, #414345 100%);
+}
+
+.App {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  width: 100vw;
+  flex-direction: column;
+  background: none;
+}
+
+.theme-toggle {
+  position: absolute;
+  top: 24px;
+  right: 32px;
+  background: rgba(255,255,255,0.7);
+  border: none;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px #b0c4de33;
+  font-size: 1.3rem;
+  transition: background 0.3s;
+  z-index: 10;
+}
+body.dark .theme-toggle {
+  background: rgba(44,62,80,0.7);
+  color: #fff;
+}
+.theme-toggle:hover {
+  background: #74ebd5;
+  color: #fff;
+}
+
+.app-header {
+  text-align: center;
+  background: rgba(255,255,255,0.25);
+  backdrop-filter: blur(12px);
+  color: #3b5998;
+  width: 100%;
+  padding: 32px 0 20px 0;
+  font-size: 2.5rem;
+  letter-spacing: 2px;
+  font-weight: 700;
+  box-shadow: 0 4px 24px rgba(59, 89, 152, 0.13);
+  border-bottom-left-radius: 32px;
+  border-bottom-right-radius: 32px;
+  text-shadow: 0 2px 8px rgba(44, 62, 80, 0.10);
+  transition: background 0.4s, color 0.4s;
+}
+body.dark .app-header {
+  background: rgba(44,62,80,0.45);
+  color: #fff;
+}
+
+.app-container {
+  margin-top: 40px;
+  background: rgba(255,255,255,0.85);
+  border-radius: 22px;
+  box-shadow: 0 8px 32px rgba(44, 62, 80, 0.13);
+  padding: 48px 38px 38px 38px;
+  min-width: 340px;
+  max-width: 95vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: background 0.4s;
+}
+body.dark .app-container {
+  background: rgba(44,62,80,0.85);
+}
+
+.room {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.room label {
+  text-align: center;
+  font-size: 1.6rem;
+  margin-bottom: 18px;
+  color: #3b5998;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-shadow: 0 1px 4px #b0c4de44;
+}
+body.dark .room label {
+  color: #fff;
+}
+
+.room input {
+  width: 260px;
+  height: 44px;
+  border: 2px solid #b0c4de;
+  border-radius: 14px;
+  padding-left: 14px;
+  font-size: 1.1rem;
+  text-align: center;
+  margin: 10px 0 18px 0;
+  background: #f7faff;
+  outline: none;
+  box-shadow: 0 2px 8px #b0c4de22;
+  transition: border 0.2s, box-shadow 0.2s, background 0.3s;
+}
+body.dark .room input {
+  background: #232526;
+  color: #fff;
+  border: 2px solid #74ebd5;
+}
+.room input:focus {
+  border: 2.5px solid #74ebd5;
+  background: #eaf1fb;
+  box-shadow: 0 4px 16px #74ebd555, 0 0 0 3px #74ebd555;
+}
+body.dark .room input:focus {
+  background: #232526;
+  box-shadow: 0 4px 16px #74ebd555, 0 0 0 3px #74ebd555;
+}
+
+.room button {
+  width: 260px;
+  height: 46px;
+  border: none;
+  border-radius: 14px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-align: center;
+  margin: 8px 0 0 0;
+  background: linear-gradient(90deg, #74ebd5 0%, #3b5998 100%);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 2px 12px rgba(59, 89, 152, 0.13);
+  transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+  letter-spacing: 1px;
+  position: relative;
+  overflow: hidden;
+}
+.room button:hover {
+  background: linear-gradient(90deg, #3b5998 0%, #74ebd5 100%);
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 6px 24px rgba(59, 89, 152, 0.18);
+}
+.room button:active {
+  animation: sendPulse 0.3s;
+}
+@keyframes sendPulse {
+  0% { box-shadow: 0 0 0 0 #74ebd555; }
+  100% { box-shadow: 0 0 0 12px rgba(116,235,213,0); }
+}
+
+.sign-out {
+  margin-top: 40px;
+  text-align: center;
+}
+.sign-out button {
+  background: #fff;
+  color: #3b5998;
+  border: 2px solid #3b5998;
+  border-radius: 14px;
+  padding: 12px 34px;
+  font-size: 1.08rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(59, 89, 152, 0.10);
+  letter-spacing: 1px;
+}
+.sign-out button:hover {
+  background: #3b5998;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(59, 89, 152, 0.18);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  background: #eaf1fb;
+}
+::-webkit-scrollbar-thumb {
+  background: #b0c4de;
+  border-radius: 8px;
+}
+body.dark ::-webkit-scrollbar-thumb {
+  background: #3b5998;
+}
