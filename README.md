@@ -29,8 +29,8 @@ The design is **simple**, **clean**, and focuses on **human-like chat** interact
 
 ### 1. **Clone the Repository**
 ```bash
-git clone https://github.com/yourusername/react-firebase-chat-app.git
-cd react-firebase-chat-app
+https://github.com/Dhruvi-tech/firebase-chat-app.git
+cd firebase-chat-app
 ```
 
 ### 2. **Install Dependencies**
