@@ -29,7 +29,7 @@ The design is **simple**, **clean**, and focuses on **human-like chat** interact
 
 ### 1. **Clone the Repository**
 ```bash
-https://github.com/Dhruvi-tech/firebase-chat-app.git
+git clone https://github.com/Dhruvi-tech/firebase-chat-app.git
 cd firebase-chat-app
 ```
 
