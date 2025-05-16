@@ -5,16 +5,14 @@
 
 ![Tech Badge](https://img.shields.io/badge/Tech-Firebase%2C%20React%2C%20CSS-blue)  
 ![License Badge](https://img.shields.io/badge/License-MIT-green)
-
----
 ---
 
 ## 🌟 Contributors
 
-Thanks to these wonderful people for helping make firebase-chat-app better!
+Thanks to these wonderful people for helping make File Encryption Tool better!
 
-<a href="https://github.com/Dhruvi-tech/firebase-chat-app/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=Dhruvi-tech/firebase-chat-app" alt="Contributors"/>
+<a href="https://github.com/Dhruvi-tech/File-Encryption-Tool/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Dhruvi-tech/File-Encryption-Tool" alt="Contributors"/>
 </a>
 
 If you contributed and don’t see your avatar, please make at least one commit or open a pull request!
