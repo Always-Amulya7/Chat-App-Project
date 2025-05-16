@@ -1,168 +1,191 @@
+/* Aesthetic Chat App Styles */
+
 .chat-app {
-    background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
-    border-radius: 28px;
-    box-shadow: 0 8px 40px 0 rgba(44,62,80,0.18);
-    min-width: 600px;
-    max-width: 90vw;
-    width: 800px;
-    margin: 48px auto;
+    background: linear-gradient(120deg, #f5f7fa 0%, #c3cfe2 100%);
+    border-radius: 32px;
+    box-shadow: 0 12px 48px 0 rgba(44,62,80,0.18);
+    min-width: 340px;
+    max-width: 95vw;
+    width: 600px;
+    margin: 56px auto;
     display: flex;
     flex-direction: column;
     align-items: center;
     position: relative;
     overflow: hidden;
     height: 85vh;
-  }
-  
-  .header {
+    border: 1.5px solid #dde6f6;
+    transition: box-shadow 0.3s;
+}
+
+.chat-app:hover {
+    box-shadow: 0 18px 64px 0 rgba(44,62,80,0.20), 0 1.5px 6px #a7bbc7;
+}
+
+.header {
     width: 100%;
     text-align: center;
-    background: rgba(255,255,255,0.45);
-    backdrop-filter: blur(12px);
-    border-radius: 0 0 18px 18px;
+    background: rgba(255,255,255,0.5);
+    backdrop-filter: blur(16px);
+    border-bottom: 2px solid #dde6f6;
+    border-radius: 0 0 24px 24px;
     box-shadow: 0 2px 16px #b0c4de33;
-    padding: 18px 0 14px 0;
+    padding: 22px 0 18px 0;
     position: sticky;
     top: 0;
     z-index: 2;
-  }
-  
-  .header h1 {
-    font-size: 1.3rem;
+}
+
+.header h1 {
+    font-size: 1.6rem;
     color: #3b5998;
-    font-weight: 800;
-    letter-spacing: 2px;
-    text-shadow: 0 2px 16px #3b599888;
+    font-weight: 900;
+    letter-spacing: 2.5px;
+    text-shadow: 0 2px 18px #3b599866;
     margin: 0;
-  }
-  
-  .messages {
+    font-family: 'Poppins', 'Segoe UI', sans-serif;
+}
+
+.messages {
     width: 100%;
     flex: 1;
     overflow-y: auto;
     background: transparent;
-    padding: 24px 0 0 0;
+    padding: 32px 0 0 0;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-  }
-  
-  .message {
+    gap: 14px;
+}
+
+.message {
     display: flex;
     align-items: flex-end;
-    margin-bottom: 8px;
-    animation: fadeInUp 0.4s;
+    margin-bottom: 10px;
+    animation: fadeInUp 0.38s;
     max-width: 80%;
     align-self: flex-start;
-    background: rgba(255,255,255,0.92);
-    color: #3b5998;
-    border-radius: 20px 20px 20px 8px;
-    padding: 12px 20px;
-    font-weight: 500;
-    box-shadow: 0 2px 12px #b0c4de33;
+    background: rgba(255,255,255,0.97);
+    color: #364f6b;
+    border-radius: 24px 24px 24px 10px;
+    padding: 16px 24px;
+    font-weight: 520;
+    box-shadow: 0 2px 12px #b0c4de2c;
     word-break: break-word;
-    font-size: 1.13rem;
+    font-size: 1.15rem;
     position: relative;
-    transition: background 0.3s, color 0.3s;
-  }
-  
-  .sent-message {
+    transition: background 0.3s, color 0.3s, box-shadow 0.3s;
+}
+
+.message:hover {
+    box-shadow: 0 6px 30px #b0c4de3b;
+    background: #f0f7fa;
+}
+
+.sent-message {
     align-self: flex-end;
-    background: linear-gradient(90deg, #74ebd5 60%, #3b5998 100%);
+    background: linear-gradient(95deg, #91eac9 55%, #3b5998 100%);
     color: #fff;
-    border-radius: 20px 20px 8px 20px;
-  }
-  
-  .bot-message {
+    border-radius: 24px 24px 10px 24px;
+    font-weight: 600;
+    box-shadow: 0 2px 16px #91eac955;
+}
+
+.bot-message {
     align-self: center;
     background: linear-gradient(90deg, #fffbe7 60%, #ffe082 100%);
     color: #3b5998;
-    border-radius: 20px;
+    border-radius: 24px;
     font-style: italic;
-  }
-  
-  .message .user {
+    font-family: 'Poppins', 'Segoe UI', sans-serif;
+}
+
+.message .user {
     font-weight: 700;
-    color: #74ebd5;
-    margin-right: 8px;
+    color: #91eac9;
+    margin-right: 10px;
     font-size: 1rem;
-    opacity: 0.85;
-  }
-  
-  .message:last-child {
+    opacity: 0.9;
+}
+
+.message:last-child {
     margin-bottom: 0;
-  }
-  
-  .new-message-form {
+}
+
+.new-message-form {
     display: flex;
     width: 100%;
-    gap: 12px;
-    padding: 18px;
-    background: rgba(255,255,255,0.85);
-    border-top: 1.5px solid #b0c4de;
+    gap: 16px;
+    padding: 20px;
+    background: rgba(255,255,255,0.93);
+    border-top: 2px solid #b0c4de;
     position: sticky;
     bottom: 0;
     z-index: 3;
     align-items: center;
-  }
-  
-  .new-message-input {
+}
+
+.new-message-input {
     flex: 1;
-    height: 48px;
-    border: 2px solid #74ebd5;
-    border-radius: 14px;
-    padding: 0 16px;
-    font-size: 1.13rem;
+    height: 52px;
+    border: 2px solid #91eac9;
+    border-radius: 16px;
+    padding: 0 20px;
+    font-size: 1.15rem;
     background: #f7faff;
     color: #3b5998;
     font-weight: 500;
     outline: none;
     box-shadow: 0 2px 8px #b0c4de22;
     transition: border 0.2s, box-shadow 0.2s, background 0.3s, color 0.3s;
-  }
-  .new-message-input:focus {
-    box-shadow: 0 0 0 3px #74ebd555;
+}
+
+.new-message-input:focus {
+    box-shadow: 0 0 0 4px #91eac955;
     border: 2.5px solid #3b5998;
-  }
-  
-  .send-button {
-    background: linear-gradient(90deg, #74ebd5 0%, #3b5998 100%);
+    background: #e0f7fa;
+}
+
+.send-button {
+    background: linear-gradient(95deg, #91eac9 0%, #3b5998 100%);
     color: #fff;
-    font-weight: 700;
-    font-size: 1.13rem;
+    font-weight: 800;
+    font-size: 1.15rem;
     border: none;
-    border-radius: 14px;
-    padding: 0 28px;
+    border-radius: 16px;
+    padding: 0 32px;
     cursor: pointer;
-    box-shadow: 0 2px 12px #74ebd555;
-    letter-spacing: 1px;
-    transition: all 0.2s;
+    box-shadow: 0 2px 14px #91eac955;
+    letter-spacing: 1.2px;
+    transition: all 0.20s;
     position: relative;
     overflow: hidden;
-  }
-  .send-button:hover {
-    background: linear-gradient(90deg, #3b5998 0%, #74ebd5 100%);
-    transform: translateY(-2px) scale(1.04);
-    box-shadow: 0 6px 24px rgba(59, 89, 152, 0.18);
-  }
-  .send-button:active {
+}
+
+.send-button:hover {
+    background: linear-gradient(95deg, #3b5998 0%, #91eac9 100%);
+    transform: translateY(-2px) scale(1.06);
+    box-shadow: 0 8px 28px rgba(59, 89, 152, 0.18);
+}
+
+.send-button:active {
     animation: sendPulse 0.3s;
-  }
-  @keyframes sendPulse {
-    0% { box-shadow: 0 0 0 0 #74ebd555; }
-    100% { box-shadow: 0 0 0 12px rgba(116,235,213,0); }
-  }
-  
-  ::-webkit-scrollbar {
+}
+
+@keyframes sendPulse {
+    0% { box-shadow: 0 0 0 0 #91eac955; }
+    100% { box-shadow: 0 0 0 16px rgba(145,234,201,0); }
+}
+
+::-webkit-scrollbar {
     width: 8px;
     background: #eaf1fb;
-  }
-  ::-webkit-scrollbar-thumb {
+}
+::-webkit-scrollbar-thumb {
     background: #b0c4de;
     border-radius: 8px;
-  }
-  
-  @keyframes fadeInUp {
+}
+
+@keyframes fadeInUp {
     from { opacity: 0; transform: translateY(20px);}
     to { opacity: 1; transform: translateY(0);}
-  }
+}
