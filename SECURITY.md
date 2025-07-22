@@ -7,6 +7,7 @@ This project uses environment variables to secure sensitive Firebase configurati
 ### 📋 Setup Instructions
 
 1. **Copy the environment template:**
+
    ```bash
    cp .env.example .env
    ```
@@ -60,7 +61,7 @@ service firebase.storage {
 When deploying to production (Vercel, Netlify, etc.):
 
 1. Set environment variables in your hosting platform
-2. Use the same variable names (VITE_FIREBASE_*)
+2. Use the same variable names (VITE\_**FIREBASE**)
 3. Never expose sensitive keys in client-side code
 4. Consider using Firebase Admin SDK for server-side operations
 
@@ -82,6 +83,7 @@ If you accidentally committed sensitive keys:
 ### 📞 Security Questions?
 
 If you have security concerns or find vulnerabilities, please:
+
 - Open a security issue (mark as security vulnerability)
 - Contact maintainers directly
 - Follow responsible disclosure practices

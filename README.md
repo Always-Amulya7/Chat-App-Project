@@ -1,25 +1,13 @@
 # 💬 Firebase Chat App - Open Source Learning Project
 
-A real-time chat application built with **HTML**, **CSS**, **JavaScript**, and **Firebase**. This beginner-friendly project is perfect for learning real-time database integration and building dynamic front-end experiences.
 ![chat-app-badge](https://img.shields.io/badge/Status-Completed-%23000080)
-
-# 💬 **Real-Time Chat Application with Firebase**
-
-**Human-Like Conversations, Powered by Firebase** 🔥
-
 ![Tech Badge](https://img.shields.io/badge/Tech-Firebase%2C%20React%2C%20Vite-blue)  
 ![License Badge](https://img.shields.io/badge/License-MIT-green)
-
----
 
 ## 🌟 **Project Overview**
 
 This project is a **real-time chat application** built with **React** and **Firebase**, offering secure authentication, instant messaging via Firestore, and seamless deployment with Firebase Hosting.  
 The design is **simple**, **clean**, and focuses on **human-like chat** interaction using purely frontend logic—**no external AI models like ChatGPT used**.
-
-**✨ Now powered by Vite for lightning-fast development and optimized builds!**
-
----
 
 ## ✨ **Key Features**
 
@@ -30,27 +18,12 @@ The design is **simple**, **clean**, and focuses on **human-like chat** interact
 - 📱 **Responsive UI (Mobile Friendly)**
 - 🌗 **Toggle Light and Dark Mode**
 
----
-
-## 🎬 **Getting Started**
-
-### 1. **Clone the Repository**
-
-## 🌟 Features
-
-- 🧑‍🤝‍🧑 Realtime 1-to-1 chat support
-- 📥 Message persistence using Firebase
-- 🔐 Simple login and logout system
-- 📱 Mobile responsive design
-- ⚡ Lightweight and fast
-- ☁️ Hosted on Firebase (optional)
-
 ## 🚀 Getting Started
 
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/JaiSwarup/firebase-chat-app.git
+git clone https://github.com/Dhruvi-tech/firebase-chat-app.git
 cd firebase-chat-app
 ```
 
@@ -133,6 +106,7 @@ firebase-chat-app/
 ├── index.html                 # Vite entry point
 ├── vite.config.js            # Vite configuration
 ├── package.json              # Dependencies and scripts
+├── .env.example                # Template for environment variables
 ├── public/                   # Static assets
 │   ├── favicon.ico
 │   ├── logo192.png
@@ -188,25 +162,6 @@ firebase deploy
 
 ---
 
-## 🤝 **Contributing**
-
-### 3. Run the App
-
-Just open `index.html` in a web browser. For development:
-
-```bash
-npx live-server
-# OR
-python -m http.server
-```
-
-## 🛠️ Technologies Used
-
-- **HTML5** – Structure
-- **CSS3** – Styling
-- **JavaScript (ES6+)** – Functionality
-- **Firebase** – Backend services (Authentication + Firestore)
-
 ## 🤝 Contributing
 
 Contributions are welcome! Whether it's bug fixes, improvements, or new features.
@@ -261,15 +216,8 @@ Licensed under the [MIT License](LICENSE).
 - **Maintainer**: [@Dhruvi-tech](https://github.com/Dhruvi-tech)
 - **Open Issues**: [GitHub Issues](https://github.com/Dhruvi-tech/firebase-chat-app/issues)
 
-## 📞 Contact
-
-- **Maintainer**: [@Dhruvi-tech](https://github.com/Dhruvi-tech)
-- **Open Issues**: [GitHub Issues](https://github.com/Dhruvi-tech/firebase-chat-app/issues)
-
 ---
 
 **Happy Coding & Collaborating! 🚀**
 
 > _This project is beginner-friendly. All contributors are welcome, regardless of experience level._ > _This project is beginner-friendly. All contributors are welcome, regardless of experience level._
-
-Would you like this saved as a file or committed to your project repo structure?
