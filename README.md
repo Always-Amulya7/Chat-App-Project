@@ -7,18 +7,6 @@
 ![License Badge](https://img.shields.io/badge/License-MIT-green)
 ---
 
-## 🌟 Contributors
-
-Thanks to these wonderful people for helping make File Encryption Tool better!
-
-<a href="https://github.com/Dhruvi-tech/File-Encryption-Tool/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=Dhruvi-tech/File-Encryption-Tool" alt="Contributors"/>
-</a>
-
-If you contributed and don’t see your avatar, please make at least one commit or open a pull request!
-
----
-
 ## 🌟 **Project Overview**
 
 This project is a **real-time chat application** built with **React** and **Firebase**, offering secure authentication, instant messaging via Firestore, and seamless deployment with Firebase Hosting.  
