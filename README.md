@@ -1,10 +1,12 @@
 ![chat-app-badge](https://img.shields.io/badge/Status-Completed-%23000080)
 
 # 💬 **Real-Time Chat Application with Firebase**
+
 **Human-Like Conversations, Powered by Firebase** 🔥
 
-![Tech Badge](https://img.shields.io/badge/Tech-Firebase%2C%20React%2C%20CSS-blue)  
+![Tech Badge](https://img.shields.io/badge/Tech-Firebase%2C%20React%2C%20Vite-blue)  
 ![License Badge](https://img.shields.io/badge/License-MIT-green)
+
 ---
 
 ## 🌟 Contributors
@@ -34,42 +36,62 @@ The design is **simple**, **clean**, and focuses on **human-like chat** interact
 - 😊 **Emotion-Sensitive Replies (Keyword-Based)**
 - 📱 **Responsive UI (Mobile Friendly)**
 - 🌗 **Toggle Light and Dark Mode**
+
 ---
 
 ## 🎬 **Getting Started**
 
 ### 1. **Clone the Repository**
+
 ```bash
 git clone https://github.com/Dhruvi-tech/firebase-chat-app.git
 cd firebase-chat-app
 ```
 
 ### 2. **Install Dependencies**
+
 ```bash
 npm install
 ```
 
 ### 3. **Run the App Locally**
+
 ```bash
+npm run dev
+# or
 npm start
 ```
+
 Navigate to `http://localhost:3000` in your browser.
+
+### 4. **Build for Production**
+
+```bash
+npm run build
+```
+
+### 5. **Preview Production Build**
+
+```bash
+npm run preview
+```
 
 ---
 
 ## 🛠️ **Advanced Features**
 
-| Feature             | Description |
-|---------------------|-------------|
-| 🔄 Typing Status | Bot typing simulation before reply |
-| 🧠 Sentiment Response | Responds with comforting or happy replies based on keywords |
-| 🧾 Message Time Tags | Every message is timestamped |
-| 🌐 Firebase Hosting | Easy deployment and scaling |
-| 💡 Minimal & Modern UI | Clean chat bubble design with auto-scroll | Toggle between Dark & Light modes |
+| Feature                | Description                                                 |
+| ---------------------- | ----------------------------------------------------------- | --------------------------------- |
+| 🔄 Typing Status       | Bot typing simulation before reply                          |
+| 🧠 Sentiment Response  | Responds with comforting or happy replies based on keywords |
+| 🧾 Message Time Tags   | Every message is timestamped                                |
+| 🌐 Firebase Hosting    | Easy deployment and scaling                                 |
+| 💡 Minimal & Modern UI | Clean chat bubble design with auto-scroll                   | Toggle between Dark & Light modes |
 
 ---
 
 ## 🌍 **Project Structure**
+
 ```bash
 react-firebase-chat-app/
 ├── public/
@@ -93,17 +115,20 @@ react-firebase-chat-app/
 ## 🚀 **Deployment: Firebase Hosting**
 
 ### 1. Install Firebase CLI:
+
 ```bash
 npm install -g firebase-tools
 ```
 
 ### 2. Login and Initialize:
+
 ```bash
 firebase login
 firebase init hosting
 ```
 
 ### 3. Build and Deploy:
+
 ```bash
 npm run build
 firebase deploy
@@ -114,6 +139,7 @@ firebase deploy
 ## 👨‍💻 **Tech Stack**
 
 - **Frontend**: React, CSS
+- **Build Tool**: Vite (for fast development and optimized builds)
 - **Backend**: Firebase (Authentication, Firestore)
 - **Hosting**: Firebase Hosting
 - **Authentication**: Google OAuth
@@ -139,6 +165,7 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 ## 🤝 **Contribute**
 
 Feel free to:
+
 - Fork the repo
 - Create feature branches
 - Submit pull requests
