@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Chat } from "./components/Chat";
-import { Auth } from "./components/Auth.js";
+import { Auth } from "./components/Auth";
 import { AppWrapper } from "./components/AppWrapper";
 import Cookies from "universal-cookie";
 import "./App.css";
@@ -22,8 +22,10 @@ function ChatApp() {
 
   function getBotReply(userMsg) {
     const msg = userMsg.toLowerCase();
-    if (msg.includes("hello") || msg.includes("hi")) return "Hello! 👋 How can I help you?";
-    if (msg.includes("help")) return "I'm here to assist you. Try saying 'hello'!";
+    if (msg.includes("hello") || msg.includes("hi"))
+      return "Hello! 👋 How can I help you?";
+    if (msg.includes("help"))
+      return "I'm here to assist you. Try saying 'hello'!";
     if (msg.includes("bye")) return "Goodbye! 👋";
     return "I'm a simple bot. Try saying 'hello', 'help', or 'bye'!";
   }
@@ -70,9 +72,21 @@ function ChatApp() {
       {!isInChat ? (
         <div className="room">
           <label>
-            <span role="img" aria-label="sparkle" style={{ fontSize: "2rem", verticalAlign: "middle" }}>✨</span>
+            <span
+              role="img"
+              aria-label="sparkle"
+              style={{ fontSize: "2rem", verticalAlign: "middle" }}
+            >
+              ✨
+            </span>
             &nbsp;Welcome! Join a Room&nbsp;
-            <span role="img" aria-label="chat" style={{ fontSize: "2rem", verticalAlign: "middle" }}>💬</span>
+            <span
+              role="img"
+              aria-label="chat"
+              style={{ fontSize: "2rem", verticalAlign: "middle" }}
+            >
+              💬
+            </span>
           </label>
           <input
             placeholder="Enter a room name..."
@@ -83,7 +97,7 @@ function ChatApp() {
               boxShadow: "0 2px 16px #74ebd555",
               fontWeight: 500,
               color: "#3b5998",
-              transition: "all 0.2s"
+              transition: "all 0.2s",
             }}
           />
           <button
@@ -102,12 +116,21 @@ function ChatApp() {
               letterSpacing: "1px",
               padding: "12px 0",
               cursor: "pointer",
-              transition: "all 0.2s"
+              transition: "all 0.2s",
             }}
-            onMouseOver={e => e.currentTarget.style.background = "linear-gradient(90deg, #3b5998 0%, #74ebd5 100%)"}
-            onMouseOut={e => e.currentTarget.style.background = "linear-gradient(90deg, #74ebd5 0%, #3b5998 100%)"}
+            onMouseOver={(e) =>
+              (e.currentTarget.style.background =
+                "linear-gradient(90deg, #3b5998 0%, #74ebd5 100%)")
+            }
+            onMouseOut={(e) =>
+              (e.currentTarget.style.background =
+                "linear-gradient(90deg, #74ebd5 0%, #3b5998 100%)")
+            }
           >
-            <span role="img" aria-label="door">🚪</span> Enter Chat
+            <span role="img" aria-label="door">
+              🚪
+            </span>{" "}
+            Enter Chat
           </button>
         </div>
       ) : (
