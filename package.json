@@ -1,6 +1,7 @@
 {
-  "name": "vid1",
+  "name": "firebase-chat-app",
   "version": "0.1.0",
+  "description": "A real-time chat application built with React, Firebase, and Vite",
   "private": true,
   "dependencies": {
     "firebase": "^9.23.0",
