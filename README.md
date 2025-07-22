@@ -68,26 +68,26 @@ npm install
 - Enable **Firestore Database**
 - Copy your Firebase config from the project settings
 
-### 2. Setup Firebase
+**🔒 IMPORTANT SECURITY STEP:**
 
-- Go to [Firebase Console](https://console.firebase.google.com/)
-- Create a new project
-- Enable **Authentication** (email/password)
-- Enable **Firestore Database**
-- Copy your Firebase config from the project settings
+Copy the environment template and add your Firebase config:
 
-Replace the config object in `src/firebase-config.js`:
-
-```javascript
-const firebaseConfig = {
-  apiKey: "YOUR-API-KEY",
-  authDomain: "YOUR-DOMAIN",
-  projectId: "YOUR-PROJECT-ID",
-  storageBucket: "YOUR-BUCKET",
-  messagingSenderId: "YOUR-SENDER-ID",
-  appId: "YOUR-APP-ID",
-};
+```bash
+cp .env.example .env
 ```
+
+Then edit `.env` and replace the placeholder values with your actual Firebase configuration:
+
+```env
+VITE_FIREBASE_API_KEY=your_actual_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_project.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
+```
+
+**⚠️ NEVER commit the `.env` file to version control!**
 
 ### 4. **Run the App Locally**
 
