@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { db, auth } from "../firebase-config";
+import { useAuth } from "../contexts/AuthContext";
 import {
   collection,
   addDoc,
@@ -16,9 +18,12 @@ function getBotReply(userMsg) {
   const msg = userMsg.toLowerCase();
 
   // Message Reactions
-  if (msg.includes("love") || msg.includes("❤️")) return "Aww, sending you lots of ❤️!";
-  if (msg.includes("happy") || msg.includes("good job")) return "😊 That makes me happy too!";
-  if (msg.includes("sad") || msg.includes("cry")) return "Oh no! 😢 If you want to talk, I'm here.";
+  if (msg.includes("love") || msg.includes("❤️"))
+    return "Aww, sending you lots of ❤️!";
+  if (msg.includes("happy") || msg.includes("good job"))
+    return "😊 That makes me happy too!";
+  if (msg.includes("sad") || msg.includes("cry"))
+    return "Oh no! 😢 If you want to talk, I'm here.";
 
   // Random Fun Facts / Quotes
   if (msg.includes("fact") || msg.includes("quote")) {
@@ -26,7 +31,7 @@ function getBotReply(userMsg) {
       "Did you know? Honey never spoils!",
       "“The best way to get started is to quit talking and begin doing.” – Walt Disney",
       "Fun fact: Bananas are berries, but strawberries aren't!",
-      "“Keep your face always toward the sunshine—and shadows will fall behind you.” – Walt Whitman"
+      "“Keep your face always toward the sunshine—and shadows will fall behind you.” – Walt Whitman",
     ];
     return facts[Math.floor(Math.random() * facts.length)];
   }
@@ -47,14 +52,20 @@ function getBotReply(userMsg) {
   }
 
   // Basic conversation
-  if (msg.includes("hi") || msg.includes("hello")) return "Hello! What's your name?";
+  if (msg.includes("hi") || msg.includes("hello"))
+    return "Hello! What's your name?";
   if (msg.includes("my name is")) {
     const name = msg.split("my name is")[1]?.trim().split(" ")[0];
-    return name ? `Nice to meet you, ${name}! How are you today?` : "Nice to meet you! How are you today?";
+    return name
+      ? `Nice to meet you, ${name}! How are you today?`
+      : "Nice to meet you! How are you today?";
   }
-  if (msg.includes("how are you")) return "I'm just a bot, but I'm doing well! How about you?";
-  if (msg.includes("good") || msg.includes("fine") || msg.includes("great")) return "That's wonderful to hear!";
-  if (msg.includes("bad") || msg.includes("not well") || msg.includes("sad")) return "I'm sorry to hear that. If you want to talk, I'm here!";
+  if (msg.includes("how are you"))
+    return "I'm just a bot, but I'm doing well! How about you?";
+  if (msg.includes("good") || msg.includes("fine") || msg.includes("great"))
+    return "That's wonderful to hear!";
+  if (msg.includes("bad") || msg.includes("not well") || msg.includes("sad"))
+    return "I'm sorry to hear that. If you want to talk, I'm here!";
   if (msg.includes("bye")) return "Goodbye! Have a great day!";
 
   // Default fallback
@@ -72,7 +83,11 @@ async function sendBotReply(messagesRef, room, userMsg) {
   }, 800);
 }
 
-export const Chat = ({ room }) => {
+export const Chat = ({ dark }) => {
+  const { roomId } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const room = decodeURIComponent(roomId);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const messagesRef = collection(db, "messages");
@@ -100,7 +115,7 @@ export const Chat = ({ room }) => {
     await addDoc(messagesRef, {
       text: newMessage,
       createdAt: serverTimestamp(),
-      user: auth.currentUser.displayName,
+      user: user?.displayName || "Anonymous",
       room,
     });
     sendBotReply(messagesRef, room, newMessage); // <-- Call it here, right after sending the user message
@@ -108,29 +123,34 @@ export const Chat = ({ room }) => {
   };
 
   return (
-    <div className="chat-app">
-      <div className="header">
-        <h1>Welcome to: {room.toUpperCase()}</h1>
+    <>
+      <button onClick={() => navigate("/rooms")} className="chat-back-button">
+        ← Back to Rooms
+      </button>
+      <div className="chat-app">
+        <div className="header">
+          <h1>Welcome to: {room.toUpperCase()}</h1>
+        </div>
+        <div className="messages">
+          {messages.map((message) => (
+            <div key={message.id} className="message">
+              <span className="user">{message.user}:</span> {message.text}
+            </div>
+          ))}
+        </div>
+        <form onSubmit={handleSubmit} className="new-message-form">
+          <input
+            type="text"
+            value={newMessage}
+            onChange={(event) => setNewMessage(event.target.value)}
+            className="new-message-input"
+            placeholder="Type your message here..."
+          />
+          <button type="submit" className="send-button">
+            Send
+          </button>
+        </form>
       </div>
-      <div className="messages">
-        {messages.map((message) => (
-          <div key={message.id} className="message">
-            <span className="user">{message.user}:</span> {message.text}
-          </div>
-        ))}
-      </div>
-      <form onSubmit={handleSubmit} className="new-message-form">
-        <input
-          type="text"
-          value={newMessage}
-          onChange={(event) => setNewMessage(event.target.value)}
-          className="new-message-input"
-          placeholder="Type your message here..."
-        />
-        <button type="submit" className="send-button">
-          Send
-        </button>
-      </form>
-    </div>
+    </>
   );
 };
