@@ -1,4 +1,5 @@
 import React from "react";
+import { cn } from "../lib/utils";
 
 class AuthErrorBoundary extends React.Component {
   constructor(props) {
@@ -14,7 +15,7 @@ class AuthErrorBoundary extends React.Component {
   componentDidCatch(error, errorInfo) {
     // Log the error to console or error reporting service
     console.error("Auth Error Boundary caught an error:", error, errorInfo);
-    
+
     this.setState({
       error: error,
       errorInfo: errorInfo,
@@ -27,14 +28,18 @@ class AuthErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="auth-error-boundary">
-          <h2 className="auth-error-title">Authentication Error</h2>
-          <p>Something went wrong with the authentication system.</p>
-          <details className="auth-error-details">
-            <summary className="auth-error-summary">
+        <div className="flex flex-col justify-center items-center h-screen p-8 text-center bg-background text-foreground">
+          <h2 className="text-xl font-semibold mb-6 text-destructive">
+            Authentication Error
+          </h2>
+          <p className="mb-6 text-lg">
+            Something went wrong with the authentication system.
+          </p>
+          <details className="mt-4 text-left w-full max-w-2xl">
+            <summary className="cursor-pointer mb-4 font-bold text-lg text-destructive">
               Error Details (Click to expand)
             </summary>
-            <pre className="auth-error-stack">
+            <pre className="text-xs overflow-auto p-4 rounded max-h-48 text-left bg-muted text-muted-foreground">
               {this.state.error && this.state.error.toString()}
               <br />
               {this.state.errorInfo.componentStack}
@@ -45,7 +50,7 @@ class AuthErrorBoundary extends React.Component {
               this.setState({ hasError: false, error: null, errorInfo: null });
               window.location.reload();
             }}
-            className="auth-error-retry-button"
+            className="mt-6 px-6 py-3 rounded font-bold transition-colors hover:opacity-90 bg-primary text-primary-foreground"
           >
             Reload Application
           </button>
