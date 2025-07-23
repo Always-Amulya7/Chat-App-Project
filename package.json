@@ -1,13 +1,16 @@
 {
   "name": "firebase-chat-app",
   "version": "0.1.0",
+  "type": "module",
   "description": "A real-time chat application built with React, Firebase, and Vite",
   "private": true,
   "dependencies": {
+    "clsx": "^2.1.1",
     "firebase": "^9.23.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.7.0",
+    "tailwind-merge": "^3.3.1",
     "universal-cookie": "^4.0.4"
   },
   "scripts": {
@@ -29,7 +32,9 @@
     ]
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.1.11",
     "@vitejs/plugin-react": "^4.7.0",
+    "tailwindcss": "^4.1.11",
     "vite": "^7.0.5"
   }
 }

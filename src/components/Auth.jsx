@@ -8,6 +8,7 @@ import {
 } from "firebase/auth";
 import { useAuth } from "../contexts/AuthContext";
 import { ButtonLoader } from "./LoadingComponents";
+import { cn } from "../lib/utils";
 
 export const Auth = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -118,38 +119,51 @@ export const Auth = () => {
   const displayError = authContextError || authError;
 
   return (
-    <div className="auth">
-      <div>
-        <h2>Welcome to Chat App</h2>
-        <p>Please sign in to continue</p>
+    <div className="relative flex size-full min-h-screen flex-col p-4 bg-background">
+      <div className="layout-container flex h-full grow flex-col">
+        <div className="px-4 md:px-40 flex flex-1 justify-center py-5">
+          <div className="layout-content-container flex flex-col w-xl max-w-xl py-5 px-4 flex-1">
+            <h1 className="tracking-light text-3xl font-bold leading-tight px-4 text-center pb-3 pt-6 text-foreground">
+              Connect and Collaborate
+            </h1>
+            <p className="text-base font-normal leading-normal pb-3 pt-1 px-4 text-center text-muted-foreground">
+              Join our community and start chatting with friends and colleagues.
+            </p>
 
-        {displayError && (
-          <div className="error-message">
-            <p className="error-text">{displayError}</p>
-            <button onClick={clearErrors} className="error-dismiss-button">
-              Dismiss
-            </button>
+            {displayError && (
+              <div className="bg-destructive border rounded-lg p-4 mx-4 mb-4">
+                <p className="text-sm">{displayError}</p>
+                <button
+                  onClick={clearErrors}
+                  className="text-red-600 text-xs underline mt-2 hover:text-red-800"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
+
+            <div className="flex justify-center">
+              <div className="flex flex-1 gap-4 max-w-lg flex-col items-stretch px-4 py-4">
+                <ButtonLoader
+                  onClick={signInWithGoogle}
+                  loading={googleLoading}
+                  disabled={anonLoading}
+                  className="flex min-w-24 max-w-lg cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 text-sm font-bold leading-normal tracking-wide w-full disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-all bg-primary"
+                >
+                  Sign in with Google
+                </ButtonLoader>
+
+                <ButtonLoader
+                  onClick={signInAnon}
+                  loading={anonLoading}
+                  disabled={googleLoading}
+                  className="flex min-w-24 max-w-lg cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 text-sm font-bold leading-normal tracking-wide w-full disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-all bg-secondary text-secondary-foreground"
+                >
+                  Continue as Guest
+                </ButtonLoader>
+              </div>
+            </div>
           </div>
-        )}
-
-        <div className="auth-buttons">
-          <ButtonLoader
-            onClick={signInWithGoogle}
-            loading={googleLoading}
-            disabled={anonLoading}
-            className="auth-button google-signin"
-          >
-            Sign in with Google
-          </ButtonLoader>
-
-          <ButtonLoader
-            onClick={signInAnon}
-            loading={anonLoading}
-            disabled={googleLoading}
-            className="auth-button anonymous-signin"
-          >
-            Continue as Guest
-          </ButtonLoader>
         </div>
       </div>
     </div>
