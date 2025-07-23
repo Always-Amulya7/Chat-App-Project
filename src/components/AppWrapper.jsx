@@ -1,10 +1,12 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Navigation } from "./Navigation";
 import { useAuth } from "../contexts/AuthContext";
 import { ButtonLoader } from "./LoadingComponents";
 
-export const AppWrapper = ({ children }) => {
+export const AppWrapper = ({ children, dark, setDark }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, signOut, loading: authLoading, isAuthenticated } = useAuth();
   const [signOutLoading, setSignOutLoading] = React.useState(false);
 
@@ -20,37 +22,49 @@ export const AppWrapper = ({ children }) => {
     }
   };
 
-  return (
-    <div className="App">
-      <div className="app-header">
-        <h1>Chat App</h1>
-        {isAuthenticated && user && (
-          <div className="user-info">
-            <span>Welcome, {user.displayName}!</span>
-            {user.photoURL && (
-              <img 
-                src={user.photoURL} 
-                alt="Profile" 
-                className="user-avatar"
-              />
-            )}
-          </div>
-        )}
-      </div>
+  // Get route-specific navigation props
+  const getNavigationProps = () => {
+    if (location.pathname === "/") {
+      return {
+        route: "landing",
+        showNavigation: true,
+      };
+    }
+    if (location.pathname === "/auth") {
+      return {
+        route: "auth",
+        showNavigation: true,
+      };
+    }
+    if (location.pathname.startsWith("/chat/")) {
+      const roomId = location.pathname.split("/chat/")[1];
+      return {
+        route: "chat",
+        roomId: roomId,
+        customTitle: `Chat Room - ${roomId}`,
+        showNavigation: isAuthenticated,
+      };
+    }
+    if (location.pathname === "/rooms") {
+      return {
+        route: "rooms",
+        showNavigation: isAuthenticated,
+      };
+    }
+    return {
+      route: "default",
+      showNavigation: true,
+    };
+  };
 
-      <div className="app-container">{children}</div>
-      
-      {isAuthenticated && (
-        <div className="sign-out">
-          <ButtonLoader
-            onClick={handleSignOut}
-            loading={signOutLoading || authLoading}
-            className="sign-out-button"
-          >
-            Sign Out
-          </ButtonLoader>
-        </div>
+  const navProps = getNavigationProps();
+
+  return (
+    <>
+      {navProps.showNavigation && (
+        <Navigation {...navProps} dark={dark} setDark={setDark} />
       )}
-    </div>
+      {children}
+    </>
   );
 };

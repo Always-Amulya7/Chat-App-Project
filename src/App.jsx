@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { Chat } from "./components/Chat";
 import { Auth } from "./components/Auth";
 import { RoomSelection } from "./components/RoomSelection";
+import { LandingPage } from "./components/LandingPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AppWrapper } from "./components/AppWrapper";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -50,15 +51,7 @@ function AppRouter() {
   }
 
   return (
-    <AppWrapper>
-      <button
-        className={`theme-toggle ${dark ? "dark" : "light"}`}
-        onClick={() => setDark((d) => !d)}
-        title="Toggle theme"
-      >
-        {dark ? "🌙" : "☀️"}
-      </button>
-
+    <AppWrapper dark={dark} setDark={setDark}>
       <Routes>
         {/* Auth route - redirect to rooms if already authenticated */}
         <Route
@@ -88,11 +81,11 @@ function AppRouter() {
           }
         />
 
-        {/* Default redirect */}
+        {/* Landing page route */}
         <Route
           path="/"
           element={
-            <Navigate to={isAuthenticated ? "/rooms" : "/auth"} replace />
+            isAuthenticated ? <Navigate to="/rooms" replace /> : <LandingPage />
           }
         />
 
