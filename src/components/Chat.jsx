@@ -11,6 +11,7 @@ import {
   query,
   orderBy,
 } from "firebase/firestore";
+import { useRef } from "react";
 
 import "../styles/Chat.css";
 
@@ -122,6 +123,12 @@ export const Chat = ({ dark }) => {
     setNewMessage("");
   };
 
+const bottomRef = useRef(null);
+useEffect(() => {
+  bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+}, [messages]);
+
+
   return (
     <>
       <button onClick={() => navigate("/rooms")} className="chat-back-button">
@@ -137,6 +144,7 @@ export const Chat = ({ dark }) => {
               <span className="user">{message.user}:</span> {message.text}
             </div>
           ))}
+          <div ref={bottomRef}></div>
         </div>
         <form onSubmit={handleSubmit} className="new-message-form">
           <input
@@ -149,6 +157,7 @@ export const Chat = ({ dark }) => {
           <button type="submit" className="send-button">
             Send
           </button>
+          
         </form>
       </div>
     </>
