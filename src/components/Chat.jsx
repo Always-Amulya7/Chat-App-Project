@@ -113,6 +113,9 @@ export const Chat = ({ dark }) => {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (newMessage.trim() === "") return;
+    console.log("Adding messages: ")
+
+    setNewMessage("");
 
     await addDoc(messagesRef, {
       text: newMessage,
@@ -120,9 +123,10 @@ export const Chat = ({ dark }) => {
       user: user?.displayName || "Anonymous",
       room,
     });
+    console.log("message added")
 
     sendBotReply(messagesRef, room, newMessage);
-    setNewMessage("");
+    
   };
 
   return (
