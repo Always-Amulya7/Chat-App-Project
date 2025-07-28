@@ -147,9 +147,11 @@ export const Navigation = ({ route, roomId, customTitle, dark, setDark }) => {
 
         {/* Theme Toggle */}
         <button
-          className="p-2 rounded-lg border border-gray-200 hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800 transition-colors"
+          className="p-2 rounded-lg border border-gray-200 hover:bg-gray-100  dark:hover:bg-gray-800 transition-colors"
           onClick={() => setDark?.((d) => !d)}
           title="Toggle theme"
+          aria-label="Toggle dark mode"
+
         >
           {dark ? "🌙" : "☀️"}
         </button>
@@ -163,7 +165,7 @@ export const Navigation = ({ route, roomId, customTitle, dark, setDark }) => {
                   ? `url("${user.photoURL}")`
                   : `url("https://ui-avatars.com/api/?name=${
                       user.displayName?.[0] || "U"
-                    }")`,
+                    }&background=random")`,
               }}
               title={user.displayName || "User"}
               onClick={() => setShowUserMenu(!showUserMenu)}

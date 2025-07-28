@@ -236,7 +236,7 @@ export const Chat = ({ dark }) => {
                     />
                     <button
                       type="submit"
-                      className="bg-muted px-4 rounded-r-lg hover:bg-gray-200 transition"
+                      className="bg-gray-100 dark:bg-gray-800 text-black dark:text-white px-4 rounded-r-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition"
                     >
                       Send
                     </button>
