@@ -56,7 +56,7 @@ export const Navigation = ({ route, roomId, customTitle, dark, setDark }) => {
   }, []);
 
   return (
-    <header className="flex items-center justify-between whitespace-nowrap border-b border-solid px-6 md:px-10 py-4 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
+    <header className="navbar">
       <div className="flex items-center gap-4 text-gray-900 dark:text-gray-100">
         <div className="size-4">
           <svg

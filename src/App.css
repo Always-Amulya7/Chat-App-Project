@@ -96,8 +96,8 @@
   --popover-foreground: oklch(0.98 0.01 285);
   --border: oklch(0.3 0 0);
   --input: oklch(0.2 0 0);
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0 0 0);
+  --sidebar: oklch(17.972% 0.04109 252.749);
+  --sidebar-foreground: oklch(0.98 0.01 285);
 }
 /* ========== GLOBAL STYLES ========== */
 body {
