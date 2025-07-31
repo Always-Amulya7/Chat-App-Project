@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { db } from "../firebase-config";
 import { useAuth } from "../contexts/AuthContext";
 import { cn } from "../lib/utils";
+import { doc } from "firebase/firestore";
 import {
   collection,
   addDoc,
@@ -11,7 +12,52 @@ import {
   onSnapshot,
   query,
   orderBy,
+  setDoc,        
+  updateDoc,
+  deleteDoc,  
+  arrayUnion,
 } from "firebase/firestore";
+
+
+function useSeenTracker(messages, user,roomParticipants) {
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (!containerRef.current || !user?.uid) return;
+
+    const observer = new IntersectionObserver(
+      async (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const messageId = entry.target.dataset.id;
+            const messageUser = entry.target.dataset.user;
+            const seenBy = JSON.parse(entry.target.dataset.seenby || "[]");
+
+            if (
+              messageUser !== (user?.displayName || "Anonymous") &&
+              !seenBy.includes(user?.uid) && roomParticipants.includes(user?.uid)
+            ) {
+              const messageRef = doc(db, "messages", messageId);
+              console.log("Marking message as seen:", messageId, "by", user.uid);
+              await updateDoc(messageRef, {
+                seenBy: arrayUnion(user.uid),
+              });
+            }
+          }
+        }
+      },
+      { threshold: 0.75 }
+    );
+
+    const messageEls = containerRef.current.querySelectorAll("[data-id]");
+    messageEls.forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, [messages, user,roomParticipants]);
+
+  return containerRef;
+}
+
 
 function getBotReply(userMsg) {
   const msg = userMsg.toLowerCase();
@@ -82,15 +128,13 @@ export const Chat = ({ dark }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const messagesRef = collection(db, "messages");
+  const [roomParticipants, setRoomParticipants] = useState([]);
   const bottomRef = useRef(null);
+  const containerRef = useSeenTracker(messages, user,roomParticipants);
 
   const scrollToBottom = () => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
 
   useEffect(() => {
     const q = query(
@@ -98,17 +142,66 @@ export const Chat = ({ dark }) => {
       where("room", "==", room),
       orderBy("createdAt")
     );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetched = snapshot.docs.map((doc) => ({
-        ...doc.data(),
-        id: doc.id,
-      }));
-      setMessages(fetched);
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const updatedMessages = [];
+      for (const docSnap of snapshot.docs) {
+        const data = docSnap.data();
+        const messageId = docSnap.id;
+        if (
+          data.userId !== user?.uid &&
+          !(data.deliveredTo || []).includes(user?.uid)
+        ) {
+          await updateDoc(docSnap.ref, {
+            deliveredTo: arrayUnion(user?.uid),
+          });
+        }
+        updatedMessages.push({ ...data, id: messageId });
+      }
+      setMessages(updatedMessages);
     });
-
+  
+    return () => unsubscribe();
+  }, [room, user]);
+  useEffect(() => {
+    if (!room) return;
+    
+    const activeUsersRef = collection(db, "activeUsers");
+    const q = query(activeUsersRef, where("room", "==", room));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const participants = [];
+      snapshot.forEach((doc) => {
+        participants.push(doc.data().uid);
+      });
+      setRoomParticipants(participants);
+    });
+  
     return () => unsubscribe();
   }, [room]);
+  useEffect(() => {
+    if (!user || !room) return;
+    const userRef = doc(db, "activeUsers", user.uid);
+    const joinRoom = async () => {
+      await setDoc(userRef, {
+        uid: user.uid,
+        displayName: user.displayName || "Anonymous",
+        room,
+        lastActive: serverTimestamp(),
+      });
+    };
+    const leaveRoom = async () => {
+      await deleteDoc(userRef);
+    };
+    joinRoom();
+    window.addEventListener("beforeunload", leaveRoom);
+    return () => {
+      leaveRoom();
+      window.removeEventListener("beforeunload", leaveRoom);
+    };
+  }, [room, user]);
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -121,8 +214,13 @@ export const Chat = ({ dark }) => {
       text: newMessage,
       createdAt: serverTimestamp(),
       user: user?.displayName || "Anonymous",
+      userId: user?.uid,
       room,
+      deliveredTo: [],
+      seenBy: [],
+      roomParticipants:roomParticipants.filter(uid => uid !== user?.uid),
     });
+    
     console.log("message added")
 
     sendBotReply(messagesRef, room, newMessage);
@@ -136,7 +234,9 @@ export const Chat = ({ dark }) => {
           <div className="layout-content-container flex flex-col flex-1 space-y-6">
 
             {/* Messages */}
-            <div className="flex flex-col gap-0 max-h-[500px] overflow-y-auto border rounded-lg p-4">
+            <div 
+            ref={containerRef}
+            className="flex flex-col gap-0 max-h-[500px] overflow-y-auto border rounded-lg p-4">
               {messages.map((message) => {
                 const isCurrentUser =
                   message.user === (user?.displayName || "Anonymous");
@@ -146,6 +246,11 @@ export const Chat = ({ dark }) => {
                 return (
                   <div
                     key={message.id}
+                    data-id={message.id}
+                    data-user={message.user}
+                    data-userid={message.userId}
+                    data-seenby={JSON.stringify(message.seenBy || [])}
+                    data-roomparticipants={JSON.stringify(message.roomParticipants || [])}
                     className={cn(
                       "flex items-end gap-3 p-4",
                       isCurrentUser && !isSystemMessage && "justify-end"
@@ -181,16 +286,28 @@ export const Chat = ({ dark }) => {
                       >
                         {message.user ?? "Anonymous"}
                       </p>
-                      <p
-                        className={cn(
-                          "text-base font-normal leading-normal flex max-w-sm rounded-lg px-4 py-3",
-                          isCurrentUser && !isSystemMessage
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-foreground"
+                      <div className="flex flex-col items-end">
+                        <p
+                          className={cn(
+                            "text-base font-normal leading-normal flex max-w-sm rounded-lg px-4 py-3",
+                            isCurrentUser && !isSystemMessage
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-foreground"
+                          )}
+                        >
+                          {message.text}
+                        </p>
+                        {isCurrentUser && !isSystemMessage &&(
+                          <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                            {(message.seenBy?.some((uid) => uid !== user?.uid && roomParticipants.includes(uid))) ? (
+                              <span className="text-blue-500">✔✔</span>):(message.deliveredTo?.some((uid) => uid !== user?.uid && roomParticipants.includes(uid))) ?(<span className="text-gray-500">✔✔</span>):(<span className="text-gray-400">✔</span>
+
+                              )}
+                              </div>
                         )}
-                      >
-                        {message.text}
-                      </p>
+                        
+                      </div>
+                     
                     </div>
 
                     {isCurrentUser && !isSystemMessage && (
