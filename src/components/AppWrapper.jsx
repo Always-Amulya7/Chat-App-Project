@@ -3,12 +3,14 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Navigation } from "./Navigation";
 import { useAuth } from "../contexts/AuthContext";
 import { ButtonLoader } from "./LoadingComponents";
+import {useState, useEffect} from "react";
 
 export const AppWrapper = ({ children, dark, setDark }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut, loading: authLoading, isAuthenticated } = useAuth();
   const [signOutLoading, setSignOutLoading] = React.useState(false);
+  const [showNavigation, setShowNavigation] = useState(true);
 
   const handleSignOut = async () => {
     try {
@@ -60,11 +62,11 @@ export const AppWrapper = ({ children, dark, setDark }) => {
   const navProps = getNavigationProps();
 
   return (
-    <>
+    <div className={dark ? "dark bg-gray-900 text-white min-h-screen" : "bg-white text-black min-h-screen"}>
       {navProps.showNavigation && (
         <Navigation {...navProps} dark={dark} setDark={setDark} />
       )}
       {children}
-    </>
+    </div>
   );
 };

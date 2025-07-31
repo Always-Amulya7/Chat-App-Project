@@ -86,7 +86,19 @@
   --sidebar-border: oklch(0.92 0.004 286.32);
   --sidebar-ring: oklch(0.623 0.214 259.815);
 }
-
+/* DARK MODE VARIABLES */
+.dark {
+  --background: oklch(0.1 0 0);
+  --foreground: oklch(0.98 0.01 285);
+  --card: oklch(0.15 0 0);
+  --card-foreground: oklch(0.98 0.01 285);
+  --popover: oklch(0.15 0 0);
+  --popover-foreground: oklch(0.98 0.01 285);
+  --border: oklch(0.3 0 0);
+  --input: oklch(0.2 0 0);
+  --sidebar: oklch(17.972% 0.04109 252.749);
+  --sidebar-foreground: oklch(0.98 0.01 285);
+}
 /* ========== GLOBAL STYLES ========== */
 body {
   font-family: "Work Sans", "Noto Sans", "Segoe UI", Tahoma, Geneva, Verdana,
@@ -117,3 +129,23 @@ body {
     transform: translateY(0);
   }
 }
+/* ========== NAVBAR STYLES ========== */
+.navbar {
+  background-color: var(--sidebar);
+  color: var(--sidebar-foreground);
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.navbar .theme-toggle-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--sidebar-foreground);
+  cursor: pointer;
+}
+

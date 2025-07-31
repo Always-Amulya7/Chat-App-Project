@@ -130,7 +130,7 @@ export const Chat = ({ dark }) => {
   };
 
   return (
-    <div className="relative flex size-full min-h-screen flex-col overflow-x-hidden p-4">
+    <div className="relative flex size-full min-h-screen flex-col overflow-x-hidden p-4 ">
       <div className="layout-container flex h-full grow flex-col">
         <div className="px-4 md:px-40 flex flex-1 justify-center py-5">
           <div className="layout-content-container flex flex-col flex-1 space-y-6">
@@ -236,7 +236,7 @@ export const Chat = ({ dark }) => {
                     />
                     <button
                       type="submit"
-                      className="bg-muted px-4 rounded-r-lg hover:bg-gray-200 transition"
+                      className="px-4 py-2 rounded-lg bg-white text-black dark:bg-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                     >
                       Send
                     </button>
