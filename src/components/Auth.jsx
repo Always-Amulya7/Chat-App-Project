@@ -131,14 +131,20 @@ export const Auth = () => {
             </p>
 
             {displayError && (
-              <div className="bg-destructive border rounded-lg p-4 mx-4 mb-4">
-                <p className="text-sm">{displayError}</p>
-                <button
-                  onClick={clearErrors}
-                  className="text-red-600 text-xs underline mt-2 hover:text-red-800"
-                >
-                  Dismiss
-                </button>
+              <div className="flex justify-center">
+                <div className="flex flex-1 max-w-lg flex-col items-stretch px-4">
+                  <div className="mb-4 rounded-xl border p-4 shadow-sm bg-red-100 dark:bg-red-900 border-red-300 dark:border-red-700 w-full">
+                    <p className="text-sm font-medium leading-relaxed text-red-800 dark:text-red-100">
+                      {displayError}
+                    </p>
+                    <button
+                      onClick={clearErrors}
+                      className="mt-3 inline-block rounded-md bg-red-600 px-3 py-1 text-sm font-semibold text-white hover:bg-red-700 transition"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 
