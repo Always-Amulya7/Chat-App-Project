@@ -14,6 +14,27 @@ The design is **simple**, **clean**, and focuses on **human-like chat** interact
 ![Enter chat screen](./assets/screenshots/enter-chat.png)
 ![Chat room](./assets/screenshots/chat.png)
 
+---
+
+<details>
+  <summary><strong>📑 Table of Contents</strong></summary>
+
+  - [✨ Key Features](#-key-features)
+  - [🚀 Getting Started](#-getting-started)
+  - [🛠️ Advanced Features](#️-advanced-features)
+  - [🌍 Project Structure](#-project-structure)
+  - [👨‍💻 Tech Stack](#-tech-stack)
+  - [🚀 Deployment: Firebase Hosting](#-deployment-firebase-hosting)
+  - [🤝 Contributing](#-contributing)
+  - [🧪 Testing](#-testing)
+  - [� License](#-license)
+  - [🌱 Learning Resources](#-learning-resources)
+  - [📞 Contact](#-contact)
+
+</details>
+
+---
+
 ## ✨ **Key Features**
 
 - 🔐 **Google Sign-In Authentication**
@@ -22,6 +43,8 @@ The design is **simple**, **clean**, and focuses on **human-like chat** interact
 - 😊 **Emotion-Sensitive Replies (Keyword-Based)**
 - 📱 **Responsive UI (Mobile Friendly)**
 - 🌗 **Toggle Light and Dark Mode**
+
+---
 
 ## 🚀 Getting Started
 
@@ -194,6 +217,8 @@ Contributions are welcome! Whether it's bug fixes, improvements, or new features
 | Message Deletion | Add delete functionality            | Intermediate |
 | Typing Indicator | Show "User is typing..."            | Advanced     |
 
+---
+
 ## 🧪 Testing
 
 Currently, manual testing is used:
@@ -202,9 +227,13 @@ Currently, manual testing is used:
 - Open in two tabs or devices to test real-time sync
 - Check console for errors and Firebase logs
 
+---
+
 ## � License
 
 Licensed under the [MIT License](LICENSE).
+
+---
 
 ## 🌱 Learning Resources
 
