@@ -9,11 +9,6 @@
 This project is a **real-time chat application** built with **React** and **Firebase**, offering secure authentication, instant messaging via Firestore, and seamless deployment with Firebase Hosting.  
 The design is **simple**, **clean**, and focuses on **human-like chat** interaction using purely frontend logic—**no external AI models like ChatGPT used**.
 
-![Home Page](./assets/screenshots/home.png)
-![Login Screen](./assets/screenshots/login.png)
-![Enter chat screen](./assets/screenshots/enter-chat.png)
-![Chat room](./assets/screenshots/chat.png)
-
 ---
 
 <details>
