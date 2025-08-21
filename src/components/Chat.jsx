@@ -7,17 +7,16 @@ import { IoMdHappy } from "react-icons/io";
 import axios from "axios";
 import ReactMarkdown from "react-markdown";
 import trainingData from "../lib/trainingData.json";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Training data helper functions
+
 function findBestMatch(userMessage, roomName) {
   const questions = trainingData.trainingQuestions[roomName] || [];
   const normalizedInput = userMessage.toLowerCase().trim();
   
-  // Look for exact or partial matches
   for (const item of questions) {
     const normalizedQuestion = item.question.toLowerCase();
     
-    // Check for exact match or high similarity
     if (normalizedQuestion.includes(normalizedInput) || 
         normalizedInput.includes(normalizedQuestion) ||
         calculateSimilarity(normalizedInput, normalizedQuestion) > 0.6) {
@@ -29,8 +28,8 @@ function findBestMatch(userMessage, roomName) {
 }
 
 function calculateSimilarity(str1, str2) {
-  const words1 = str1.split(' ');
-  const words2 = str2.split(' ');
+  const words1 = str1.split(' ').filter(word => word.length > 2); // Filter short words
+  const words2 = str2.split(' ').filter(word => word.length > 2);
   const commonWords = words1.filter(word => words2.includes(word));
   return commonWords.length / Math.max(words1.length, words2.length);
 }
@@ -39,6 +38,13 @@ function getRandomSampleQuestion(roomName) {
   const questions = trainingData.trainingQuestions[roomName] || [];
   if (questions.length === 0) return null;
   return questions[Math.floor(Math.random() * questions.length)];
+}
+
+function getRandomTrainingResponse(roomName) {
+  const questions = trainingData.trainingQuestions[roomName] || [];
+  if (questions.length === 0) return "I'm here to help! What would you like to talk about?";
+  const randomItem = questions[Math.floor(Math.random() * questions.length)];
+  return randomItem.response;
 }
 
 function useSeenTracker(messages, user) {
@@ -74,28 +80,31 @@ function useSeenTracker(messages, user) {
 }
 
 function getRoomContext(roomName) {
-  return trainingData.contextPrompts[roomName] || 
+  if (!trainingData || !trainingData.contextPrompts) {
+    console.warn("No trainingData.contextPrompts found, defaulting to generic assistant");
+    return "You are a helpful assistant. Be friendly and helpful with any topics users want to discuss.";
+  }
+
+  return trainingData.contextPrompts[roomName] ||
     "You are a helpful assistant. Be friendly and helpful with any topics users want to discuss.";
 }
 
-async function getAIResponse(userMsg, roomName, chatHistory) {
+// 🔑 Initialize Gemini SDK
+const genAI = new GoogleGenerativeAI(import.meta.env.VITE_API_GENERATIVE_LANGUAGE_CLIENT);
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+async function getGeminiResponse(userMsg, roomName, chatHistory) {
   try {
-    // First, check if we have a training data match
-    const trainingMatch = findBestMatch(userMsg, roomName);
-    if (trainingMatch) {
-      return trainingMatch;
-    }
-
-    // If no training match, use AI API
     const roomContext = getRoomContext(roomName);
-    const conversationHistory = chatHistory.slice(-10).map(msg =>
-      `${msg.user}: ${msg.text}`
-    ).join('\n');
+    const conversationHistory = chatHistory
+      .slice(-10)
+      .map((msg) => `${msg.user}: ${msg.text}`)
+      .join("\n");
 
-    // Include training examples in the context for better responses
     const sampleQuestion = getRandomSampleQuestion(roomName);
-    const exampleContext = sampleQuestion ? 
-      `\n\nExample interaction in this room:\nUser: ${sampleQuestion.question}\nAssistant: ${sampleQuestion.response}` : '';
+    const exampleContext = sampleQuestion
+      ? `\n\nExample interaction in this room:\nUser: ${sampleQuestion.question}\nAssistant: ${sampleQuestion.response}`
+      : "";
 
     const prompt = `${roomContext}${exampleContext}
 
@@ -104,26 +113,67 @@ ${conversationHistory}
 
 User just said: ${userMsg}
 
-Please respond naturally as if you're participating in this ${roomName} chat room. Keep responses conversational and engaging, matching the style of the example provided.`;
+Please respond naturally as if you're participating in this ${roomName} chat room. Keep responses conversational and engaging, matching the style of the example provided. Be concise but helpful.`;
 
-    const response = await axios({
-      url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${
-        import.meta.env.VITE_API_GENERATIVE_LANGUAGE_CLIENT
-      }`,
-      method: "post",
-      data: {
-        contents: [{ parts: [{ text: prompt }] }],
-      },
-    });
+    // ✅ Use Gemini SDK instead of axios
+    const result = await model.generateContent(prompt);
 
-    return response["data"]["candidates"][0]["content"]["parts"][0]["text"];
+    const text = result?.response?.candidates?.[0]?.content?.parts?.[0]?.text 
+              ?? result?.response?.text() 
+              ?? "";
+
+    if (!text) {
+      throw new Error("Invalid response format from Gemini API");
+    }
+
+    return text;
+  } catch (err) {
+    console.error("Gemini API request failed:", err.message || err);
+    throw err;
+  }
+}
+
+async function getAIResponse(userMsg, roomName, chatHistory) {
+  try {
+    console.log("Attempting to get AI response for:", userMsg);
+
+    // First, check if we have a training data match
+    const trainingMatch = findBestMatch(userMsg, roomName);
+    if (trainingMatch) {
+      console.log("Found training data match");
+      return trainingMatch;
+    }
+
+    // Check if API key is available
+    if (!import.meta.env.VITE_API_GENERATIVE_LANGUAGE_CLIENT) {
+      console.warn("No Gemini API key found, using training data");
+      return getRandomTrainingResponse(roomName);
+    }
+
+    // Try Gemini API
+    console.log("Attempting Gemini API call");
+    const geminiResponse = await getGeminiResponse(userMsg, roomName, chatHistory);
+    console.log("Gemini API success");
+    return geminiResponse;
   } catch (error) {
     console.error("AI Response Error:", error);
-    // Fallback to a training response if API fails
+
+    // Enhanced fallback logic
+    if (error.code === "ECONNABORTED" || error.message?.includes("timeout")) {
+      console.log("API timeout, using training data");
+    } else if (error.response?.status === 429) {
+      console.log("API rate limit exceeded, using training data");
+    } else if (error.response?.status >= 500) {
+      console.log("API server error, using training data");
+    } else {
+      console.log("API error, using training data:", error.message);
+    }
+
+    // Fallback to training data
     const fallbackResponse = getRandomSampleQuestion(roomName);
-    return fallbackResponse ? 
-      fallbackResponse.response : 
-      "Sorry, I'm having trouble responding right now. Please try again!";
+    return fallbackResponse
+      ? fallbackResponse.response
+      : getRandomTrainingResponse(roomName);
   }
 }
 
@@ -153,6 +203,7 @@ async function sendBotReply(userMsg, roomName, chatHistory, setMessages) {
       }];
     });
   } catch (error) {
+    console.error("Send bot reply error:", error);
     // Remove typing indicator and add error message
     setMessages(prev => {
       const filtered = prev.filter(msg => msg.id !== typingId);
@@ -174,6 +225,7 @@ export const Chat = ({ dark }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [showSampleQuestions, setShowSampleQuestions] = useState(false);
+  const [apiStatus, setApiStatus] = useState('unknown'); // 'working', 'failed', 'unknown'
   const bottomRef = useRef(null);
   const containerRef = useSeenTracker(messages, user);
 
@@ -216,6 +268,26 @@ export const Chat = ({ dark }) => {
     scrollToBottom();
   }, [messages]);
 
+  // Test API on component mount
+  useEffect(() => {
+    const testAPI = async () => {
+      if (!import.meta.env.VITE_API_GENERATIVE_LANGUAGE_CLIENT) {
+        setApiStatus('failed');
+        return;
+      }
+
+      try {
+        await getGeminiResponse("Hello", room, []);
+        setApiStatus('working');
+      } catch (error) {
+        console.log("API test failed, will use training data");
+        setApiStatus('failed');
+      }
+    };
+
+    testAPI();
+  }, [room]);
+
   // Initialize chat with welcome message based on room
   useEffect(() => {
     if (room) {
@@ -227,17 +299,24 @@ export const Chat = ({ dark }) => {
       };
 
       const welcomeMessage = welcomeMessages[room] || `Welcome to ${room}! Start chatting below.`;
+      
+      // Add API status info
+      const statusMessage = apiStatus === 'failed' 
+        ? " (Running in offline mode with training data)" 
+        : apiStatus === 'working' 
+        ? " (Connected to AI)" 
+        : "";
 
       setMessages([{
         id: "welcome-" + Date.now(),
         user: "AI Assistant",
-        text: welcomeMessage,
+        text: welcomeMessage + statusMessage,
         timestamp: new Date(),
         isAI: true,
         isWelcome: true
       }]);
     }
-  }, [room]);
+  }, [room, apiStatus]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -292,6 +371,18 @@ export const Chat = ({ dark }) => {
                 {room === "General" && "General discussions and friendly conversations"}
                 {!["Tech Talk", "Gaming", "Random", "General"].includes(room) && "Custom chat room for focused discussions"}
               </p>
+              
+              {/* API Status Indicator */}
+              <div className="mt-2 flex items-center justify-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${
+                  apiStatus === 'working' ? 'bg-green-500' : 
+                  apiStatus === 'failed' ? 'bg-yellow-500' : 'bg-gray-500'
+                }`}></div>
+                <span className="text-xs text-gray-600 dark:text-gray-400">
+                  {apiStatus === 'working' ? 'AI Connected' : 
+                   apiStatus === 'failed' ? 'Offline Mode' : 'Connecting...'}
+                </span>
+              </div>
               
               {/* Sample Questions Button */}
               <button
@@ -504,64 +595,3 @@ export const Chat = ({ dark }) => {
     </div>
   );
 };
-
-
-/* iframe used chatbot
-import React, { useState, useRef } from "react";
-import { useParams } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
-
-export const Chat = ({ dark }) => {
-  const { roomId } = useParams();
-  const { user } = useAuth();
-  const room = decodeURIComponent(roomId);
-  const [isTyping, setIsTyping] = useState(false);
-
-  return (
-    <div className="relative flex size-full min-h-screen flex-col overflow-x-hidden p-4">
-      <div className="layout-container flex h-full grow flex-col">
-        <div className="px-4 md:px-40 flex flex-1 justify-center py-5">
-          <div className="layout-content-container flex flex-col flex-1 space-y-6">
-            <div className="text-center py-4 border-b">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                {room}
-              </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {room === "Tech Talk" &&
-                  "Discuss technology, programming, and innovation"}
-                {room === "Gaming" &&
-                  "Talk about games, strategies, and gaming culture"}
-                {room === "Random" &&
-                  "Anything goes! Random discussions welcome"}
-                {room === "General" &&
-                  "General discussions and friendly conversations"}
-                {!["Tech Talk", "Gaming", "Random", "General"].includes(room) &&
-                  "Custom chat room for focused discussions"}
-              </p>
-            </div>
-
-            <div className="w-full h-[600px]">
-              {" "}
-              <iframe
-                src="https://www.chatbase.co/chatbot-iframe/CbMomx9y45n2z0CVpwZ1u"
-                width="100%"
-                height="100%"
-                style={{ border: "none" }}
-                title="Chatbase Bot"
-              />
-            </div>
-
-            <div className="text-center text-sm text-gray-500 dark:text-gray-400">
-              Connected to{" "}
-              <span className="font-semibold text-blue-500">{room}</span> room
-              {isTyping && (
-                <span className="ml-2 text-green-500">• You are typing...</span>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-*/
