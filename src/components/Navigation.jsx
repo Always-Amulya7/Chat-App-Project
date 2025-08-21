@@ -191,7 +191,7 @@ export const Navigation = ({ route, roomId, customTitle, dark, setDark }) => {
                 </div>
                 <button
                   onClick={handleProfile}
-                  className="w-full text-left px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                  className="w-full text-left px-4 py-3 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                 >
                   Profile
                 </button>
