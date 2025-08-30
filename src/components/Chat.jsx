@@ -8,7 +8,10 @@ import axios from "axios";
 import ReactMarkdown from "react-markdown";
 import trainingData from "../lib/trainingData.json";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-
+// Import Firestore functions from firebase/firestore
+import { collection, onSnapshot, query, orderBy, addDoc, serverTimestamp, doc, deleteDoc } from "firebase/firestore";
+import { db } from "../firebase-config";
+import { RiDeleteBin6Line } from "react-icons/ri"; // Import delete icon
 
 function findBestMatch(userMessage, roomName) {
   const questions = trainingData.trainingQuestions[roomName] || [];
@@ -268,6 +271,27 @@ export const Chat = ({ dark }) => {
     scrollToBottom();
   }, [messages]);
 
+  // Firebase integration: Fetch messages from Firestore
+  useEffect(() => {
+    const q = query(
+      collection(db, `rooms/${room}/messages`),
+      orderBy("timestamp", "asc")
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const newMessages = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+        isCurrentUser: doc.data().userId === user?.uid,
+      }));
+      setMessages(newMessages);
+    });
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
+  }, [room, user?.uid]);
+  
+
   // Test API on component mount
   useEffect(() => {
     const testAPI = async () => {
@@ -317,22 +341,38 @@ export const Chat = ({ dark }) => {
       }]);
     }
   }, [room, apiStatus]);
+  
+  // 🆕 Add handleDeleteMessage function
+  const handleDeleteMessage = async (messageId) => {
+    try {
+      const messageDocRef = doc(db, `rooms/${room}/messages`, messageId);
+      await deleteDoc(messageDocRef);
+      // The `onSnapshot` listener will handle updating the state automatically
+      console.log("Message deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting message: ", error);
+      alert("Failed to delete the message. Please try again.");
+    }
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (newMessage.trim() === "") return;
 
     const userMessage = {
-      id: Date.now() + "-user",
       text: newMessage,
       user: user?.displayName || "Anonymous",
       userId: user?.uid,
-      timestamp: new Date(),
-      isCurrentUser: true
+      timestamp: serverTimestamp(),
     };
 
-    // Add user message immediately
-    setMessages(prev => [...prev, userMessage]);
+    try {
+      // Add message to Firestore
+      const docRef = await addDoc(collection(db, `rooms/${room}/messages`), userMessage);
+      console.log("Message written with ID: ", docRef.id);
+    } catch (e) {
+      console.error("Error adding document: ", e);
+    }
 
     const currentMessage = newMessage;
     setNewMessage("");
@@ -485,6 +525,14 @@ export const Chat = ({ dark }) => {
                         </div>
                         {isCurrentUser && !isAI && (
                           <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                            {/* 🆕 Delete button */}
+                            <button
+                              onClick={() => handleDeleteMessage(message.id)}
+                              className="text-gray-400 hover:text-red-500 transition-colors"
+                              title="Delete Message"
+                            >
+                              <RiDeleteBin6Line />
+                            </button>
                             <span className="text-blue-500">✔✔</span>
                           </div>
                         )}
