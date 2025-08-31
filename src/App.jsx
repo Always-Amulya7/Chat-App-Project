@@ -37,14 +37,13 @@ function AppRouter() {
   }
 
   async function sendBotReply(room, userMsg) {
-    setTimeout(async () => {
-      await addDoc(messagesRef, {
-        text: getBotReply(userMsg),
-        createdAt: serverTimestamp(),
-        user: "ChatBot",
-        room,
-      });
-    }, 800);
+    // Removed setTimeout to avoid performance issues with many messages
+    await addDoc(messagesRef, {
+      text: getBotReply(userMsg),
+      createdAt: serverTimestamp(),
+      user: "ChatBot",
+      room,
+    });
   }
 
   // Show loading while determining auth state
@@ -113,7 +112,6 @@ function AppRouter() {
             </ProtectedRoute>
           }
         />
-
 
         {/* Catch all - redirect to home */}
         <Route path="*" element={<Navigate to="/" replace />} />
