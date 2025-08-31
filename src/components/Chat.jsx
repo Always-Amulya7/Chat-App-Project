@@ -21,8 +21,8 @@ function findBestMatch(userMessage, roomName) {
     const normalizedQuestion = item.question.toLowerCase();
     
     if (normalizedQuestion.includes(normalizedInput) || 
-        normalizedInput.includes(normalizedQuestion) ||
-        calculateSimilarity(normalizedInput, normalizedQuestion) > 0.6) {
+      normalizedInput.includes(normalizedQuestion) ||
+      calculateSimilarity(normalizedInput, normalizedQuestion) > 0.6) {
       return item.response;
     }
   }
@@ -122,8 +122,8 @@ Please respond naturally as if you're participating in this ${roomName} chat roo
     const result = await model.generateContent(prompt);
 
     const text = result?.response?.candidates?.[0]?.content?.parts?.[0]?.text 
-              ?? result?.response?.text() 
-              ?? "";
+          ?? result?.response?.text() 
+          ?? "";
 
     if (!text) {
       throw new Error("Invalid response format from Gemini API");
@@ -244,7 +244,7 @@ export const Chat = ({ dark }) => {
     setTimeout(() => {
       inputRef.current.focus();
       inputRef.current.selectionStart = cursorPos + emojiData.emoji.length;
-      inputRef.current.selectionEnd = cursorPos + emojiData.emoji.length;
+      input.current.selectionEnd = cursorPos + emojiData.emoji.length;
     }, 0);
   };
 
@@ -420,7 +420,7 @@ export const Chat = ({ dark }) => {
                 }`}></div>
                 <span className="text-xs text-gray-600 dark:text-gray-400">
                   {apiStatus === 'working' ? 'AI Connected' : 
-                   apiStatus === 'failed' ? 'Offline Mode' : 'Connecting...'}
+                    apiStatus === 'failed' ? 'Offline Mode' : 'Connecting...'}
                 </span>
               </div>
               
@@ -525,7 +525,7 @@ export const Chat = ({ dark }) => {
                         </div>
                         {isCurrentUser && !isAI && (
                           <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                            {/* 🆕 Delete button */}
+                            {/* Delete button */}
                             <button
                               onClick={() => handleDeleteMessage(message.id)}
                               className="text-gray-400 hover:text-red-500 transition-colors"
@@ -535,6 +535,15 @@ export const Chat = ({ dark }) => {
                             </button>
                             <span className="text-blue-500">✔✔</span>
                           </div>
+                        )}
+                        {/* Timestamp Display */}
+                        {message.timestamp && (
+                          <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {new Date(message.timestamp.seconds * 1000).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
                         )}
                       </div>
                     </div>
