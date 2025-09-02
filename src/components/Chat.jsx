@@ -60,6 +60,13 @@ function useSeenTracker(messages, user,roomParticipants) {
   return containerRef;
 }
 
+function getDeviceType() {
+  const ua = navigator.userAgent.toLowerCase();
+  if (/mobile|android|iphone|ipad|ipod/.test(ua)) {
+    return "mobile";
+  }
+  return "desktop";
+}
 
 function getBotReply(userMsg) {
   const msg = userMsg.toLowerCase();
@@ -119,6 +126,7 @@ async function sendBotReply(messagesRef, room, userMsg) {
       createdAt: serverTimestamp(),
       user: "ChatBot",
       room,
+      deviceType: "bot", // new field
     });
   }, 800);
 }
@@ -258,6 +266,7 @@ const [isTyping, setIsTyping] = useState(false);
       user: user?.displayName || "Anonymous",
       userId: user?.uid,
       room,
+      deviceType: getDeviceType().toLowerCase(), // new field
       deliveredTo: [],
       seenBy: [],
       roomParticipants:roomParticipants.filter(uid => uid !== user?.uid),
@@ -339,6 +348,14 @@ const [isTyping, setIsTyping] = useState(false);
                         >
                           {message.text}
                         </p>
+                        {message.deviceType && (
+                          <small className="text-xs text-gray-500 mt-1">
+                            {message.deviceType === "mobile" && "📱 Mobile"}
+                            {message.deviceType === "desktop" && "💻 Desktop"}
+                            {message.deviceType === "bot" && "🤖 Bot"}
+                          </small>
+)}
+
                         {isCurrentUser && !isSystemMessage &&(
                           <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                             {(message.seenBy?.some((uid) => uid !== user?.uid && roomParticipants.includes(uid))) ? (
