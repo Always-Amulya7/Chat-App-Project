@@ -54,7 +54,11 @@ export default function Chat() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isBotReplying, setIsBotReplying] = useState(false);
 
+  const [loadingMessages, setLoadingMessages] = useState(true);
+
+
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
 
   const [apiStatus, setApiStatus] = useState("checking");
   const messagesEndRef = useRef(null);
@@ -85,6 +89,7 @@ export default function Chat() {
         isCurrentUser: doc.data().userId === user?.uid,
       }));
       setMessages(newMessages);
+      setLoadingMessages(false);
     });
 
     return () => unsubscribe();
@@ -128,6 +133,11 @@ export default function Chat() {
     );
 
     scrollToBottom();
+  };
+
+  const handleEmojiClick = (emojiObject) => {
+    setInput(prev => prev + emojiObject.emoji);
+    setShowEmojiPicker(false);
   };
 
   // Send AI reply
@@ -175,7 +185,7 @@ export default function Chat() {
         isAI: true,
       };
 
-      await addDoc(collection(db, `rooms/${roomId}/messages`), fallbackMessage);
+      await addDoc(collection(db, `rooms/${roomId}/messages`), aiMessage);
     } finally {
       setIsBotReplying(false);
     }
@@ -222,22 +232,29 @@ export default function Chat() {
     <div className="flex flex-col h-screen">
       {/* Chat Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-100">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={cn(
-              "p-2 rounded-lg max-w-lg",
-              msg.isAI
-                ? "bg-blue-100 self-start"
-                : msg.isCurrentUser
-                ? "bg-green-100 self-end"
-                : "bg-white self-start"
-            )}
-          >
-            <strong>{msg.user}: </strong>
-            <ReactMarkdown>{msg.text}</ReactMarkdown>
+        {loadingMessages ? (
+          <div className="flex justify-center items-center h-full">
+            <div className="w-8 h-8 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin" />
+            <span className="ml-2 text-gray-600">Loading messages...</span>
           </div>
-        ))}
+        ) : (
+          messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={cn(
+                "p-2 rounded-lg max-w-lg",
+                msg.isAI
+                  ? "bg-blue-100 self-start"
+                  : msg.isCurrentUser
+                  ? "bg-green-100 self-end"
+                  : "bg-white self-start"
+              )}
+            >
+              <strong>{msg.user}: </strong>
+              <ReactMarkdown>{msg.text}</ReactMarkdown>
+            </div>
+          ))
+        )}
         {isBotReplying && (
           <div className="p-2 rounded-lg bg-blue-50 self-start italic">
             AI Assistant is typing...
@@ -251,14 +268,18 @@ export default function Chat() {
 
       {/* Input Area */}
       <div className="p-4 bg-white flex items-center space-x-2 border-t">
-        <button onClick={() => setShowEmojiPicker(!showEmojiPicker)}>
-          <IoMdHappy className="text-2xl" />
+        <button
+          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+          className="p-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+          title="Add emoji"
+          disabled={isBotReplying}
+        >
+          <IoMdHappy size={20} />
         </button>
         {showEmojiPicker && (
-          <EmojiPicker
-            onEmojiClick={(e) => setInput(input + e.emoji)}
-            className="absolute bottom-16"
-          />
+          <div className="absolute bottom-full right-0 mb-2 z-10">
+            <EmojiPicker onEmojiClick={handleEmojiClick} />
+          </div>
         )}
 
         <input
@@ -267,6 +288,7 @@ export default function Chat() {
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type your message..."
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
+          disabled={isBotReplying}
         />
         <button
 
@@ -280,9 +302,20 @@ export default function Chat() {
 
           onClick={handleSend}
           className="bg-blue-500 text-white px-4 py-2 rounded-lg"
+          disabled={isBotReplying}
         >
+          {isBotReplying ? (
+            <span className="flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-transparent border-t-white rounded-full animate-spin" />
+              <span>AI Thinking...</span>
+            </span>
+          ) : (
+            'Send'
+          )}
+
 
           Send
+
         </button>
         {showEmojiPicker && (
           <div className="absolute bottom-full right-0 mb-2 z-10">
