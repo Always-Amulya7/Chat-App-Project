@@ -56,10 +56,17 @@ export default function Chat() {
   const [loadingMessages, setLoadingMessages] = useState(true);
   const [apiStatus, setApiStatus] = useState("checking");
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
 
-  // Auto scroll to bottom
+  // Auto scroll to bottom only if user is near the bottom
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = messagesContainerRef.current;
+    if (container) {
+      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+      if (isNearBottom) {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }
+    }
   };
 
   useEffect(() => {
@@ -210,7 +217,7 @@ export default function Chat() {
   return (
     <div className="flex flex-col h-screen">
       {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-100">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-100">
         {loadingMessages ? (
           <div className="flex justify-center items-center h-full">
             <div className="w-8 h-8 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin" />
