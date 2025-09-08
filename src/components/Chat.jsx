@@ -8,6 +8,7 @@ import ReactMarkdown from "react-markdown";
 import trainingData from "../lib/trainingData.json";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { FixedSizeList as List } from "react-window";
+import { MessagesSkeleton } from "./LoadingComponents";
 
 // 🔑 Initialize Gemini SDK
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_API_GENERATIVE_LANGUAGE_CLIENT);
@@ -204,10 +205,13 @@ const Chat = ({ dark }) => {
   const [input, setInput] = useState('');
   const [isBotReplying, setIsBotReplying] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [loadingMessages, setLoadingMessages] = useState(true);
 
   // Load messages from Firebase (placeholder)
   useEffect(() => {
+    setLoadingMessages(true);
     // Load messages logic here
+    setLoadingMessages(false);
   }, [roomId]);
 
   const handleSend = async () => {
@@ -240,14 +244,21 @@ const Chat = ({ dark }) => {
   return (
     <div className="chat-container">
       <div className="messages-container">
-        <List
-          height={400}
-          itemCount={messages.length}
-          itemSize={60}
-          width="100%"
-        >
-          {MessageItem}
-        </List>
+        {loadingMessages ? (
+          <div className="flex justify-center items-center h-full">
+            <div className="w-8 h-8 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin" />
+            <span className="ml-2 text-gray-600">Loading messages...</span>
+          </div>
+        ) : (
+          <List
+            height={400}
+            itemCount={messages.length}
+            itemSize={60}
+            width="100%"
+          >
+            {MessageItem}
+          </List>
+        )}
       </div>
       <div className="input-container relative">
         <input
@@ -256,16 +267,25 @@ const Chat = ({ dark }) => {
           onKeyPress={e => e.key === 'Enter' && handleSend()}
           placeholder="Type a message..."
           className="w-full p-2 border rounded"
+          disabled={isBotReplying}
         />
         <button
           onClick={() => setShowEmojiPicker(!showEmojiPicker)}
           className="ml-2 p-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
           title="Add emoji"
+          disabled={isBotReplying}
         >
           <IoMdHappy size={20} />
         </button>
         <button onClick={handleSend} disabled={isBotReplying} className="ml-2 p-2 bg-blue-500 text-white rounded">
-          Send
+          {isBotReplying ? (
+            <span className="flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-transparent border-t-white rounded-full animate-spin" />
+              <span>AI Thinking...</span>
+            </span>
+          ) : (
+            'Send'
+          )}
         </button>
         {showEmojiPicker && (
           <div className="absolute bottom-full right-0 mb-2 z-10">
