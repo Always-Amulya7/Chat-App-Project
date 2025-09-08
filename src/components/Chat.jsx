@@ -203,6 +203,7 @@ const Chat = ({ dark }) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isBotReplying, setIsBotReplying] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   // Load messages from Firebase (placeholder)
   useEffect(() => {
@@ -220,6 +221,11 @@ const Chat = ({ dark }) => {
     setMessages(prev => [...prev, newMessage]);
     setInput('');
     await sendBotReply(input, roomId, messages, setMessages, setIsBotReplying);
+  };
+
+  const handleEmojiClick = (emojiObject) => {
+    setInput(prev => prev + emojiObject.emoji);
+    setShowEmojiPicker(false);
   };
 
   const MessageItem = ({ index, style }) => {
@@ -243,7 +249,7 @@ const Chat = ({ dark }) => {
           {MessageItem}
         </List>
       </div>
-      <div className="input-container">
+      <div className="input-container relative">
         <input
           value={input}
           onChange={e => setInput(e.target.value)}
@@ -251,9 +257,21 @@ const Chat = ({ dark }) => {
           placeholder="Type a message..."
           className="w-full p-2 border rounded"
         />
+        <button
+          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+          className="ml-2 p-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+          title="Add emoji"
+        >
+          <IoMdHappy size={20} />
+        </button>
         <button onClick={handleSend} disabled={isBotReplying} className="ml-2 p-2 bg-blue-500 text-white rounded">
           Send
         </button>
+        {showEmojiPicker && (
+          <div className="absolute bottom-full right-0 mb-2 z-10">
+            <EmojiPicker onEmojiClick={handleEmojiClick} />
+          </div>
+        )}
       </div>
     </div>
   );
