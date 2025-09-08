@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { cn } from "../lib/utils";
@@ -98,134 +98,109 @@ function getRoomContext(roomName) {
 }
 
 async function getGeminiResponse(userMsg, roomName, chatHistory) {
+import { db } from "../firebase";
+import {
+  collection,
+  addDoc,
+  onSnapshot,
+  query,
+  orderBy,
+  serverTimestamp,
+} from "firebase/firestore";
+
+// Initialize Gemini AI
+const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
+
+async function getGeminiResponse(message, context) {
+
   try {
-    const roomContext = getRoomContext(roomName);
-    const conversationHistory = chatHistory
-      .slice(-10)
-      .map((msg) => `${msg.user}: ${msg.text}`)
-      .join("\n");
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const prompt = `
+You are a helpful AI chat assistant. Maintain natural conversation flow.
 
-    const sampleQuestion = getRandomSampleQuestion(roomName);
-    const exampleContext = sampleQuestion
-      ? `\n\nExample interaction in this room:\nUser: ${sampleQuestion.question}\nAssistant: ${sampleQuestion.response}`
-      : "";
+User's message: ${message}
 
-    const prompt = `${roomContext}${exampleContext}
-
-Previous conversation:
-${conversationHistory}
-
-User just said: ${userMsg}
-
-Please respond naturally as if you're participating in this ${roomName} chat room. Keep responses conversational and engaging, matching the style of the example provided. Be concise but helpful.`;
+Conversation context:
+${context.map((m) => `${m.user}: ${m.text}`).join("\n")}
+    `;
 
     const result = await model.generateContent(prompt);
 
     const text =
-      result?.response?.candidates?.[0]?.content?.parts?.[0]?.text ||
-      result?.response?.text() ||
+      result?.response?.candidates?.[0]?.content?.parts?.[0]?.text ??
+      result?.response?.text() ??
       "";
 
-    if (!text) {
-      throw new Error("Invalid response format from Gemini API");
-    }
-
     return text;
-  } catch (err) {
-    console.error("Gemini API request failed:", err.message || err);
-    throw err;
-  }
-}
-
-async function getAIResponse(userMsg, roomName, chatHistory) {
-  try {
-    console.log("Attempting to get AI response for:", userMsg);
-
-    const trainingMatch = findBestMatch(userMsg, roomName);
-    if (trainingMatch) {
-      console.log("Found training data match");
-      return trainingMatch;
-    }
-
-    if (!import.meta.env.VITE_API_GENERATIVE_LANGUAGE_CLIENT) {
-      console.warn("No Gemini API key found, using training data");
-      return getRandomTrainingResponse(roomName);
-    }
-
-    console.log("Attempting Gemini API call");
-    const geminiResponse = await getGeminiResponse(userMsg, roomName, chatHistory);
-    console.log("Gemini API success");
-    return geminiResponse;
   } catch (error) {
-    console.error("AI Response Error:", error);
-
-    const fallbackResponse = getRandomSampleQuestion(roomName);
-    return fallbackResponse
-      ? fallbackResponse.response
-      : getRandomTrainingResponse(roomName);
+    console.error("Gemini API Error:", error);
+    throw new Error("AI service is currently unavailable.");
   }
 }
 
-async function sendBotReply(userMsg, roomName, chatHistory, setMessages, setIsBotReplying) {
-  setIsBotReplying(true);
-
-  try {
-    const aiResponse = await getAIResponse(userMsg, roomName, chatHistory);
-
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now() + "-bot",
-        user: "AI Assistant",
-        text: aiResponse,
-        timestamp: new Date(),
-        isAI: true,
-      },
-    ]);
-  } catch (error) {
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now() + "-error",
-        user: "AI Assistant",
-        text: "Sorry, I encountered an error. Please try again!",
-        timestamp: new Date(),
-        isAI: true,
-      },
-    ]);
-  } finally {
-    setIsBotReplying(false);
-  }
-}
-
-const Chat = ({ dark }) => {
+export default function Chat() {
   const { roomId } = useParams();
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isBotReplying, setIsBotReplying] = useState(false);
+
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(true);
 
-  // Load messages from Firebase (placeholder)
+  const [apiStatus, setApiStatus] = useState("checking");
+  const messagesEndRef = useRef(null);
+
+
+  // Auto scroll to bottom
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
   useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // Firestore listener for messages
+  useEffect(() => {
+
     setLoadingMessages(true);
     // Load messages logic here
     setLoadingMessages(false);
   }, [roomId]);
 
+    if (!roomId) return;
+
+    const q = query(
+      collection(db, `rooms/${roomId}/messages`),
+      orderBy("timestamp", "asc")
+    );
+
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const newMessages = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+        isCurrentUser: doc.data().userId === user?.uid,
+      }));
+      setMessages(newMessages);
+    });
+
+    return () => unsubscribe();
+  }, [roomId, user?.uid]);
+
+  // Send message
   const handleSend = async () => {
     if (!input.trim()) return;
-    const newMessage = {
-      id: Date.now(),
+
+    const newMessageObj = {
+      userId: user?.uid,
       user: user?.displayName || "Anonymous",
       text: input,
-      timestamp: new Date(),
+      timestamp: serverTimestamp(),
     };
-    setMessages(prev => [...prev, newMessage]);
-    setInput('');
-    await sendBotReply(input, roomId, messages, setMessages, setIsBotReplying);
-  };
+
 
   const handleEmojiClick = (emojiObject) => {
     setInput(prev => prev + emojiObject.emoji);
@@ -238,10 +213,113 @@ const Chat = ({ dark }) => {
       <div style={style} className="p-2 border-b">
         <strong>{message.user}:</strong> {message.text}
       </div>
+
+    await addDoc(collection(db, `rooms/${roomId}/messages`), newMessageObj);
+    setInput("");
+
+    await sendBotReply(
+      input,
+      roomId,
+      messages,
+      setMessages,
+      setIsBotReplying,
+      apiStatus
+
     );
+
+    scrollToBottom();
   };
 
+  // Send AI reply
+  const sendBotReply = async (
+    userMessage,
+    roomId,
+    prevMessages,
+    setMessages,
+    setIsBotReplying,
+    apiStatus
+  ) => {
+    setIsBotReplying(true);
+
+    try {
+      let replyText;
+
+      if (apiStatus === "failed") {
+        // Fallback: use local training data
+        replyText =
+          trainingData[userMessage.toLowerCase()] ??
+          "Sorry, I can only reply with training data in offline mode.";
+      } else {
+        // Online: use Gemini API
+        replyText = await getGeminiResponse(userMessage, prevMessages);
+      }
+
+      const aiMessage = {
+        userId: "AI",
+        user: "AI Assistant",
+        text: replyText,
+        timestamp: serverTimestamp(),
+        isAI: true,
+      };
+
+      await addDoc(collection(db, `rooms/${roomId}/messages`), aiMessage);
+    } catch (error) {
+      console.error("Error getting AI response:", error);
+
+      const fallbackMessage = {
+        userId: "AI",
+        user: "AI Assistant",
+        text:
+          "⚠️ AI service is unavailable. Please try again later, or continue chatting.",
+        timestamp: serverTimestamp(),
+        isAI: true,
+      };
+
+      await addDoc(collection(db, `rooms/${roomId}/messages`), fallbackMessage);
+    } finally {
+      setIsBotReplying(false);
+    }
+  };
+
+  // Welcome message
+  useEffect(() => {
+    if (roomId) {
+      const welcomeMessages = {
+        General:
+          "Welcome to the General chat room! Feel free to discuss anything here. 💬",
+        "Tech Talk":
+          "Welcome to Tech Talk! Let's dive into all things technology. 💻",
+        Random:
+          "Welcome to Random! Expect the unexpected here! 🎲",
+        Gaming:
+          "Welcome to Gaming! Ready to talk about your favorite games? 🎮",
+      };
+
+      const welcomeMessage =
+        welcomeMessages[roomId] || `Welcome to ${roomId}! Start chatting below.`;
+
+      const statusMessage =
+        apiStatus === "failed"
+          ? " (Running in offline mode with training data)"
+          : apiStatus === "working"
+          ? " (Connected to AI)"
+          : "";
+
+      setMessages([
+        {
+          id: "welcome-" + Date.now(),
+          user: "AI Assistant",
+          text: welcomeMessage + statusMessage,
+          timestamp: new Date(),
+          isAI: true,
+          isWelcome: true,
+        },
+      ]);
+    }
+  }, [roomId, apiStatus]);
+
   return (
+
     <div className="chat-container">
       <div className="messages-container">
         {loadingMessages ? (
@@ -261,8 +339,50 @@ const Chat = ({ dark }) => {
         )}
       </div>
       <div className="input-container relative">
+
+    <div className="flex flex-col h-screen">
+      {/* Chat Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-100">
+        {messages.map((msg) => (
+          <div
+            key={msg.id}
+            className={cn(
+              "p-2 rounded-lg max-w-lg",
+              msg.isAI
+                ? "bg-blue-100 self-start"
+                : msg.isCurrentUser
+                ? "bg-green-100 self-end"
+                : "bg-white self-start"
+            )}
+          >
+            <strong>{msg.user}: </strong>
+            <ReactMarkdown>{msg.text}</ReactMarkdown>
+          </div>
+        ))}
+        {isBotReplying && (
+          <div className="p-2 rounded-lg bg-blue-50 self-start italic">
+            AI Assistant is typing...
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input Area */}
+      <div className="p-4 bg-white flex items-center space-x-2 border-t">
+        <button onClick={() => setShowEmojiPicker(!showEmojiPicker)}>
+          <IoMdHappy className="text-2xl" />
+        </button>
+        {showEmojiPicker && (
+          <EmojiPicker
+            onEmojiClick={(e) => setInput(input + e.emoji)}
+            className="absolute bottom-16"
+          />
+        )}
+
         <input
+          className="flex-1 border rounded-lg p-2"
           value={input}
+
           onChange={e => setInput(e.target.value)}
           onKeyPress={e => e.key === 'Enter' && handleSend()}
           placeholder="Type a message..."
@@ -286,6 +406,17 @@ const Chat = ({ dark }) => {
           ) : (
             'Send'
           )}
+
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Type your message..."
+          onKeyDown={(e) => e.key === "Enter" && handleSend()}
+        />
+        <button
+          onClick={handleSend}
+          className="bg-blue-500 text-white px-4 py-2 rounded-lg"
+        >
+          Send
+
         </button>
         {showEmojiPicker && (
           <div className="absolute bottom-full right-0 mb-2 z-10">
@@ -295,6 +426,4 @@ const Chat = ({ dark }) => {
       </div>
     </div>
   );
-};
-
-export { Chat };
+}
