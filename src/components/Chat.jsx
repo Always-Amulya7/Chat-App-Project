@@ -53,12 +53,18 @@ export default function Chat() {
   const [input, setInput] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isBotReplying, setIsBotReplying] = useState(false);
+
   const [loadingMessages, setLoadingMessages] = useState(true);
+
+
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+
   const [apiStatus, setApiStatus] = useState("checking");
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
 
-  // Auto scroll to bottom only if user is near the bottom
+
   const scrollToBottom = () => {
     const container = messagesContainerRef.current;
     if (container) {
@@ -106,6 +112,19 @@ export default function Chat() {
       timestamp: serverTimestamp(),
     };
 
+
+  const handleEmojiClick = (emojiObject) => {
+    setInput(prev => prev + emojiObject.emoji);
+    setShowEmojiPicker(false);
+  };
+
+  const MessageItem = ({ index, style }) => {
+    const message = messages[index];
+    return (
+      <div style={style} className="p-2 border-b">
+        <strong>{message.user}:</strong> {message.text}
+      </div>
+
     await addDoc(collection(db, `rooms/${roomId}/messages`), newMessageObj);
     setInput("");
 
@@ -116,6 +135,7 @@ export default function Chat() {
       setMessages,
       setIsBotReplying,
       apiStatus
+
     );
 
     scrollToBottom();
@@ -249,6 +269,9 @@ export default function Chat() {
         <div ref={messagesEndRef} />
       </div>
 
+      <div className="input-container relative">
+
+
       {/* Input Area */}
       <div className="p-4 bg-white flex items-center space-x-2 border-t">
         <button
@@ -264,6 +287,7 @@ export default function Chat() {
             <EmojiPicker onEmojiClick={handleEmojiClick} />
           </div>
         )}
+
         <input
           className="flex-1 border rounded-lg p-2"
           value={input}
@@ -273,6 +297,15 @@ export default function Chat() {
           disabled={isBotReplying}
         />
         <button
+
+          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+          className="ml-2 p-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+          title="Add emoji"
+        >
+          <IoMdHappy size={20} />
+        </button>
+        <button onClick={handleSend} disabled={isBotReplying} className="ml-2 p-2 bg-blue-500 text-white rounded">
+
           onClick={handleSend}
           className="bg-blue-500 text-white px-4 py-2 rounded-lg"
           disabled={isBotReplying}
@@ -285,7 +318,16 @@ export default function Chat() {
           ) : (
             'Send'
           )}
+
+
+          Send
+
         </button>
+        {showEmojiPicker && (
+          <div className="absolute bottom-full right-0 mb-2 z-10">
+            <EmojiPicker onEmojiClick={handleEmojiClick} />
+          </div>
+        )}
       </div>
     </div>
   );
