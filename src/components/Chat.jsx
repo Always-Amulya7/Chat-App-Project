@@ -4,6 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { cn } from "../lib/utils";
 import EmojiPicker from "emoji-picker-react";
 import { IoMdHappy } from "react-icons/io";
+import { MdDelete } from "react-icons/md";
 import ReactMarkdown from "react-markdown";
 import trainingData from "../lib/trainingData.json";
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -15,6 +16,8 @@ import {
   query,
   orderBy,
   serverTimestamp,
+  deleteDoc,
+  doc,
 } from "firebase/firestore";
 
 // Initialize Gemini AI
@@ -119,6 +122,16 @@ export default function Chat() {
     );
 
     scrollToBottom();
+  };
+
+  // Delete message
+  const handleDelete = async (messageId) => {
+    try {
+      await deleteDoc(doc(db, `rooms/${roomId}/messages`, messageId));
+    } catch (error) {
+      console.error("Error deleting message:", error);
+      alert("Failed to delete message. Please try again.");
+    }
   };
 
   const handleEmojiClick = (emojiObject) => {
@@ -228,7 +241,7 @@ export default function Chat() {
             <div
               key={msg.id}
               className={cn(
-                "p-2 rounded-lg max-w-lg",
+                "p-2 rounded-lg max-w-lg relative",
                 msg.isAI
                   ? "bg-blue-100 self-start"
                   : msg.isCurrentUser
@@ -238,6 +251,15 @@ export default function Chat() {
             >
               <strong>{msg.user}: </strong>
               <ReactMarkdown>{msg.text}</ReactMarkdown>
+              {msg.isCurrentUser && !msg.isAI && !msg.isWelcome && (
+                <button
+                  onClick={() => handleDelete(msg.id)}
+                  title="Delete message"
+                  className="absolute top-1 right-1 text-red-600 hover:text-red-800"
+                >
+                  <MdDelete size={18} />
+                </button>
+              )}
             </div>
           ))
         )}
