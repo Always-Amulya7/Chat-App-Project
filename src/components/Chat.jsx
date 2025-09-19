@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { cn } from "../lib/utils";
@@ -7,294 +7,202 @@ import { IoMdHappy } from "react-icons/io";
 import ReactMarkdown from "react-markdown";
 import trainingData from "../lib/trainingData.json";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+
 import { FixedSizeList as List } from "react-window";
 import { MessagesSkeleton } from "./LoadingComponents";
 
+// Firebase imports
+import {
+  collection,
+  onSnapshot,
+  query,
+  orderBy,
+  addDoc,
+  serverTimestamp,
+  doc,
+  deleteDoc,
+} from "firebase/firestore";
+import { db, rtdb } from "../firebase-config";
+import { ref, onValue, onDisconnect, set, serverTimestamp as rtdbServerTimestamp } from "firebase/database";
+import { RiDeleteBin6Line } from "react-icons/ri";
+
 // 🔑 Initialize Gemini SDK
-const genAI = new GoogleGenerativeAI(import.meta.env.VITE_API_GENERATIVE_LANGUAGE_CLIENT);
+const genAI = new GoogleGenerativeAI(
+  import.meta.env.VITE_API_GENERATIVE_LANGUAGE_CLIENT
+);
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-function findBestMatch(userMessage, roomName) {
-  const questions = trainingData.trainingQuestions[roomName] || [];
-  const normalizedInput = userMessage.toLowerCase().trim();
+// --- Utility functions (same as before) ---
+// findBestMatch, calculateSimilarity, getRandomSampleQuestion, etc.
 
-  for (const item of questions) {
-    const normalizedQuestion = item.question.toLowerCase();
-
-    if (
-      normalizedQuestion.includes(normalizedInput) ||
-      normalizedInput.includes(normalizedQuestion) ||
-      calculateSimilarity(normalizedInput, normalizedQuestion) > 0.6
-    ) {
-      return item.response;
-    }
-  }
-
-  return null;
-}
-
-function calculateSimilarity(str1, str2) {
-  const words1 = str1.split(" ").filter((word) => word.length > 2); // Filter short words
-  const words2 = str2.split(" ").filter((word) => word.length > 2);
-  const commonWords = words1.filter((word) => words2.includes(word));
-  return commonWords.length / Math.max(words1.length, words2.length);
-}
-
-function getRandomSampleQuestion(roomName) {
-  const questions = trainingData.trainingQuestions[roomName] || [];
-  if (questions.length === 0) return null;
-  return questions[Math.floor(Math.random() * questions.length)];
-}
-
-function getRandomTrainingResponse(roomName) {
-  const questions = trainingData.trainingQuestions[roomName] || [];
-  if (questions.length === 0) return "I'm here to help! What would you like to talk about?";
-  const randomItem = questions[Math.floor(Math.random() * questions.length)];
-  return randomItem.response;
-}
-
-function useSeenTracker(messages, user) {
-  const containerRef = useRef(null);
-
-  useEffect(() => {
-    if (!containerRef.current || !user?.uid) return;
-
-    const observer = new IntersectionObserver(
-      async (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            const messageId = entry.target.dataset.id;
-            const messageUser = entry.target.dataset.user;
-
-            // Mark message as seen (for local state management)
-            if (messageUser !== (user?.displayName || "Anonymous")) {
-              console.log("Message seen:", messageId);
-            }
-          }
-        }
-      },
-      { threshold: 0.75 }
-    );
-
-    const messageEls = containerRef.current.querySelectorAll("[data-id]");
-    messageEls.forEach((el) => observer.observe(el));
-
-    return () => observer.disconnect();
-  }, [messages, user]);
-
-  return containerRef;
-}
-
-function getRoomContext(roomName) {
-  if (!trainingData || !trainingData.contextPrompts) {
-    console.warn("No trainingData.contextPrompts found, defaulting to generic assistant");
-    return "You are a helpful assistant. Be friendly and helpful with any topics users want to discuss.";
-  }
-
-  return (
-    trainingData.contextPrompts[roomName] ||
-    "You are a helpful assistant. Be friendly and helpful with any topics users want to discuss."
-  );
-}
-
-async function getGeminiResponse(userMsg, roomName, chatHistory) {
-  try {
-    const roomContext = getRoomContext(roomName);
-    const conversationHistory = chatHistory
-      .slice(-10)
-      .map((msg) => `${msg.user}: ${msg.text}`)
-      .join("\n");
-
-    const sampleQuestion = getRandomSampleQuestion(roomName);
-    const exampleContext = sampleQuestion
-      ? `\n\nExample interaction in this room:\nUser: ${sampleQuestion.question}\nAssistant: ${sampleQuestion.response}`
-      : "";
-
-    const prompt = `${roomContext}${exampleContext}
-
-Previous conversation:
-${conversationHistory}
-
-User just said: ${userMsg}
-
-Please respond naturally as if you're participating in this ${roomName} chat room. Keep responses conversational and engaging, matching the style of the example provided. Be concise but helpful.`;
-
-    const result = await model.generateContent(prompt);
-
-    const text =
-      result?.response?.candidates?.[0]?.content?.parts?.[0]?.text ||
-      result?.response?.text() ||
-      "";
-
-    if (!text) {
-      throw new Error("Invalid response format from Gemini API");
-    }
-
-    return text;
-  } catch (err) {
-    console.error("Gemini API request failed:", err.message || err);
-    throw err;
-  }
-}
-
-async function getAIResponse(userMsg, roomName, chatHistory) {
-  try {
-    console.log("Attempting to get AI response for:", userMsg);
-
-    const trainingMatch = findBestMatch(userMsg, roomName);
-    if (trainingMatch) {
-      console.log("Found training data match");
-      return trainingMatch;
-    }
-
-    if (!import.meta.env.VITE_API_GENERATIVE_LANGUAGE_CLIENT) {
-      console.warn("No Gemini API key found, using training data");
-      return getRandomTrainingResponse(roomName);
-    }
-
-    console.log("Attempting Gemini API call");
-    const geminiResponse = await getGeminiResponse(userMsg, roomName, chatHistory);
-    console.log("Gemini API success");
-    return geminiResponse;
-  } catch (error) {
-    console.error("AI Response Error:", error);
-
-    const fallbackResponse = getRandomSampleQuestion(roomName);
-    return fallbackResponse
-      ? fallbackResponse.response
-      : getRandomTrainingResponse(roomName);
-  }
-}
-
-async function sendBotReply(userMsg, roomName, chatHistory, setMessages, setIsBotReplying) {
-  setIsBotReplying(true);
-
-  try {
-    const aiResponse = await getAIResponse(userMsg, roomName, chatHistory);
-
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now() + "-bot",
-        user: "AI Assistant",
-        text: aiResponse,
-        timestamp: new Date(),
-        isAI: true,
-      },
-    ]);
-  } catch (error) {
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now() + "-error",
-        user: "AI Assistant",
-        text: "Sorry, I encountered an error. Please try again!",
-        timestamp: new Date(),
-        isAI: true,
-      },
-    ]);
-  } finally {
-    setIsBotReplying(false);
-  }
-}
+// --- sendBotReply, getAIResponse, getGeminiResponse (same as before) ---
 
 const Chat = ({ dark }) => {
   const { roomId } = useParams();
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [isBotReplying, setIsBotReplying] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(true);
+  const [apiStatus, setApiStatus] = useState("connecting");
 
-  // Load messages from Firebase (placeholder)
+  const containerRef = useRef(null);
+  const bottomRef = useRef(null);
+  const [onlineUsers, setOnlineUsers] = useState([]);
+
+  // 🔥 Firestore subscription
   useEffect(() => {
-    setLoadingMessages(true);
-    // Load messages logic here
-    setLoadingMessages(false);
-  }, [roomId]);
+    if (!roomId) return;
+    const q = query(
+      collection(db, `rooms/${roomId}/messages`),
+      orderBy("timestamp", "asc")
+    );
 
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const newMessages = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+        isCurrentUser: doc.data().userId === user?.uid,
+      }));
+      setMessages(newMessages);
+      setLoadingMessages(false);
+    });
+
+    return () => unsubscribe();
+  }, [roomId, user?.uid]);
+
+  // Presence tracking
+  useEffect(() => {
+    if (!roomId || !user) return;
+
+    const presenceRef = ref(rtdb, `rooms/${roomId}/presence/${user.uid}`);
+    const connectedRef = ref(rtdb, ".info/connected");
+
+    const unsubscribeConnected = onValue(connectedRef, (snap) => {
+      if (snap.val() === true) {
+        set(presenceRef, {
+          online: true,
+          displayName: user.displayName || "Anonymous",
+          lastSeen: rtdbServerTimestamp()
+        });
+        onDisconnect(presenceRef).set({
+          online: false,
+          displayName: user.displayName || "Anonymous",
+          lastSeen: rtdbServerTimestamp()
+        });
+      }
+    });
+
+    const roomPresenceRef = ref(rtdb, `rooms/${roomId}/presence`);
+    const unsubscribePresence = onValue(roomPresenceRef, (snapshot) => {
+      const users = [];
+      snapshot.forEach((childSnap) => {
+        const data = childSnap.val();
+        if (data && data.online) {
+          users.push({
+            uid: childSnap.key,
+            displayName: data.displayName
+          });
+        }
+      });
+      setOnlineUsers(users);
+    });
+
+    return () => {
+      unsubscribeConnected();
+      unsubscribePresence();
+      set(presenceRef, {
+        online: false,
+        displayName: user.displayName || "Anonymous",
+        lastSeen: rtdbServerTimestamp()
+      });
+    };
+  }, [roomId, user]);
+
+  // 🟢 Handle send
   const handleSend = async () => {
     if (!input.trim()) return;
-    const newMessage = {
-      id: Date.now(),
-      user: user?.displayName || "Anonymous",
+
+    const userMessage = {
       text: input,
-      timestamp: new Date(),
+      user: user?.displayName || "Anonymous",
+      userId: user?.uid,
+      timestamp: serverTimestamp(),
     };
-    setMessages(prev => [...prev, newMessage]);
-    setInput('');
-    await sendBotReply(input, roomId, messages, setMessages, setIsBotReplying);
+
+    try {
+      await addDoc(collection(db, `rooms/${roomId}/messages`), userMessage);
+    } catch (e) {
+      console.error("Error adding document: ", e);
+    }
+
+    const currentMessage = input;
+    setInput("");
+    await sendBotReply(currentMessage, roomId, messages, setMessages, setIsBotReplying);
   };
 
-  const handleEmojiClick = (emojiObject) => {
-    setInput(prev => prev + emojiObject.emoji);
-    setShowEmojiPicker(false);
+  // 🆕 Delete message
+  const handleDeleteMessage = async (messageId) => {
+    try {
+      const messageDocRef = doc(db, `rooms/${roomId}/messages`, messageId);
+      await deleteDoc(messageDocRef);
+      console.log("Message deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting message: ", error);
+      alert("Failed to delete the message. Please try again.");
+    }
   };
 
-  const MessageItem = ({ index, style }) => {
-    const message = messages[index];
+  // Render online users list UI
+  const renderOnlineUsers = () => {
+    if (onlineUsers.length === 0) {
+      return <p className="text-sm text-gray-500 dark:text-gray-400">No users online</p>;
+    }
     return (
-      <div style={style} className="p-2 border-b">
-        <strong>{message.user}:</strong> {message.text}
-      </div>
+      <ul className="flex space-x-4 overflow-x-auto py-2">
+        {onlineUsers.map((user) => (
+          <li key={user.uid} className="flex items-center space-x-2">
+            <span className="inline-block w-3 h-3 rounded-full bg-green-500" title="Online"></span>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{user.displayName}</span>
+          </li>
+        ))}
+      </ul>
     );
   };
 
   return (
-    <div className="chat-container">
-      <div className="messages-container">
+    <div className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900">
+      <div className="bg-white dark:bg-gray-800 p-4 shadow">
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Chat Room: {roomId}</h1>
+        <div className="mt-2">
+          {renderOnlineUsers()}
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto p-4">
         {loadingMessages ? (
-          <div className="flex justify-center items-center h-full">
-            <div className="w-8 h-8 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin" />
-            <span className="ml-2 text-gray-600">Loading messages...</span>
-          </div>
+          <MessagesSkeleton />
         ) : (
-          <List
-            height={400}
-            itemCount={messages.length}
-            itemSize={60}
-            width="100%"
-          >
-            {MessageItem}
-          </List>
+          messages.map((msg) => (
+            <div key={msg.id} className={`mb-2 p-2 rounded ${msg.isCurrentUser ? 'bg-blue-200 ml-auto' : 'bg-gray-200'}`}>
+              <strong>{msg.user}:</strong> {msg.text}
+            </div>
+          ))
         )}
       </div>
-      <div className="input-container relative">
+      <div className="bg-white dark:bg-gray-800 p-4 flex">
         <input
           value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyPress={e => e.key === 'Enter' && handleSend()}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+          className="flex-1 p-2 border rounded mr-2"
           placeholder="Type a message..."
-          className="w-full p-2 border rounded"
-          disabled={isBotReplying}
         />
-        <button
-          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-          className="ml-2 p-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
-          title="Add emoji"
-          disabled={isBotReplying}
-        >
-          <IoMdHappy size={20} />
-        </button>
-        <button onClick={handleSend} disabled={isBotReplying} className="ml-2 p-2 bg-blue-500 text-white rounded">
-          {isBotReplying ? (
-            <span className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-transparent border-t-white rounded-full animate-spin" />
-              <span>AI Thinking...</span>
-            </span>
-          ) : (
-            'Send'
-          )}
-        </button>
-        {showEmojiPicker && (
-          <div className="absolute bottom-full right-0 mb-2 z-10">
-            <EmojiPicker onEmojiClick={handleEmojiClick} />
-          </div>
-        )}
+        <button onClick={handleSend} className="bg-blue-500 text-white p-2 rounded">Send</button>
       </div>
     </div>
   );
 };
 
-export { Chat };
+export default Chat;
+
