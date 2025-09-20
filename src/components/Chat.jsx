@@ -8,7 +8,7 @@ import { MdDelete } from "react-icons/md";
 import ReactMarkdown from "react-markdown";
 import trainingData from "../lib/trainingData.json";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { db } from "../firebase";
+import { db } from "../firebase-config";
 import {
   collection,
   addDoc,
@@ -49,7 +49,14 @@ ${context.map((m) => `${m.user}: ${m.text}`).join("\n")}
   }
 }
 
-export default function Chat() {
+// Detect device type
+function getDeviceType() {
+  const ua = navigator.userAgent.toLowerCase();
+  if (/mobile|android|iphone|ipad|ipod/.test(ua)) return "mobile";
+  return "desktop";
+}
+
+export function Chat() {
   const { roomId } = useParams();
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
@@ -57,11 +64,13 @@ export default function Chat() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isBotReplying, setIsBotReplying] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(true);
+
+
   const [apiStatus, setApiStatus] = useState("checking");
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
 
-  // Auto scroll to bottom only if user is near the bottom
+
   const scrollToBottom = () => {
     const container = messagesContainerRef.current;
     if (container) {
@@ -107,22 +116,26 @@ export default function Chat() {
       user: user?.displayName || "Anonymous",
       text: input,
       timestamp: serverTimestamp(),
+      deviceType: getDeviceType(),
     };
-
-    await addDoc(collection(db, `rooms/${roomId}/messages`), newMessageObj);
-    setInput("");
-
-    await sendBotReply(
-      input,
-      roomId,
-      messages,
-      setMessages,
-      setIsBotReplying,
-      apiStatus
-    );
-
-    scrollToBottom();
+     await addDoc(collection(db,`rooms/${roomId}/messages`), newMessageObj); 
+    setInput(""); 
+    await sendBotReply( input, roomId, messages ); 
+    scrollToBottom(); 
   };
+
+
+
+  const MessageItem = ({ index, style }) => {
+    const message = messages[index];
+    return (
+      <div style={style} className="p-2 border-b">
+        <strong>{message.user}:</strong> {message.text}
+      </div>
+    )
+   
+  };
+
 
   // Delete message
   const handleDelete = async (messageId) => {
@@ -134,32 +147,22 @@ export default function Chat() {
     }
   };
 
+
   const handleEmojiClick = (emojiObject) => {
     setInput(prev => prev + emojiObject.emoji);
     setShowEmojiPicker(false);
   };
 
   // Send AI reply
-  const sendBotReply = async (
-    userMessage,
-    roomId,
-    prevMessages,
-    setMessages,
-    setIsBotReplying,
-    apiStatus
-  ) => {
+  const sendBotReply = async (userMessage, roomId, prevMessages) => {
     setIsBotReplying(true);
-
     try {
       let replyText;
-
       if (apiStatus === "failed") {
-        // Fallback: use local training data
         replyText =
           trainingData[userMessage.toLowerCase()] ??
           "Sorry, I can only reply with training data in offline mode.";
       } else {
-        // Online: use Gemini API
         replyText = await getGeminiResponse(userMessage, prevMessages);
       }
 
@@ -169,9 +172,9 @@ export default function Chat() {
         text: replyText,
         timestamp: serverTimestamp(),
         isAI: true,
+        deviceType: "bot",
       };
 
-      await addDoc(collection(db, `rooms/${roomId}/messages`), aiMessage);
     } catch (error) {
       console.error("Error getting AI response:", error);
 
@@ -222,6 +225,7 @@ export default function Chat() {
           timestamp: new Date(),
           isAI: true,
           isWelcome: true,
+          deviceType: "bot",
         },
       ]);
     }
@@ -251,6 +255,7 @@ export default function Chat() {
             >
               <strong>{msg.user}: </strong>
               <ReactMarkdown>{msg.text}</ReactMarkdown>
+
               {msg.isCurrentUser && !msg.isAI && !msg.isWelcome && (
                 <button
                   onClick={() => handleDelete(msg.id)}
@@ -259,6 +264,14 @@ export default function Chat() {
                 >
                   <MdDelete size={18} />
                 </button>
+
+              {msg.deviceType && (
+                <div className="text-xs text-gray-500 mt-1">
+                  {msg.deviceType === "mobile" && "📱 Mobile"}
+                  {msg.deviceType === "desktop" && "💻 Desktop"}
+                  {msg.deviceType === "bot" && "🤖 Bot"}
+                </div>
+
               )}
             </div>
           ))
@@ -270,6 +283,9 @@ export default function Chat() {
         )}
         <div ref={messagesEndRef} />
       </div>
+
+      <div className="input-container relative">
+
 
       {/* Input Area */}
       <div className="p-4 bg-white flex items-center space-x-2 border-t">
@@ -286,6 +302,7 @@ export default function Chat() {
             <EmojiPicker onEmojiClick={handleEmojiClick} />
           </div>
         )}
+
         <input
           className="flex-1 border rounded-lg p-2"
           value={input}
@@ -295,6 +312,14 @@ export default function Chat() {
           disabled={isBotReplying}
         />
         <button
+
+          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+          className="ml-2 p-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+          title="Add emoji"
+        >
+          <IoMdHappy size={20} />
+        </button>
+        <button 
           onClick={handleSend}
           className="bg-blue-500 text-white px-4 py-2 rounded-lg"
           disabled={isBotReplying}
@@ -307,8 +332,16 @@ export default function Chat() {
           ) : (
             'Send'
           )}
+
+
         </button>
+        {showEmojiPicker && (
+          <div className="absolute bottom-full right-0 mb-2 z-10">
+            <EmojiPicker onEmojiClick={handleEmojiClick} />
+          </div>
+        )}
       </div>
+    </div>
     </div>
   );
 }
