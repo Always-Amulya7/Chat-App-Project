@@ -34,3 +34,25 @@ export const ButtonLoader = ({
     </button>
   );
 };
+
+export const MessageSkeleton = () => {
+  return (
+    <div className="p-2 border-b animate-pulse">
+      <div className="flex items-center space-x-2">
+        <div className="w-20 h-4 bg-gray-300 rounded"></div>
+        <div className="w-32 h-4 bg-gray-300 rounded"></div>
+      </div>
+      <div className="mt-2 w-3/4 h-4 bg-gray-300 rounded"></div>
+    </div>
+  );
+};
+
+export const MessagesSkeleton = ({ count = 5 }) => {
+  return (
+    <div className="space-y-2">
+      {Array.from({ length: count }, (_, i) => (
+        <MessageSkeleton key={i} />
+      ))}
+    </div>
+  );
+};

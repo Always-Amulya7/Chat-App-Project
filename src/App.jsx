@@ -3,7 +3,9 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { Chat } from "./components/Chat";
 import { Auth } from "./components/Auth";
 import { RoomSelection } from "./components/RoomSelection";
+import { Profile } from "./components/Profile";
 import { LandingPage } from "./components/LandingPage";
+import { About } from "./components/About";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AppWrapper } from "./components/AppWrapper";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -35,14 +37,13 @@ function AppRouter() {
   }
 
   async function sendBotReply(room, userMsg) {
-    setTimeout(async () => {
-      await addDoc(messagesRef, {
-        text: getBotReply(userMsg),
-        createdAt: serverTimestamp(),
-        user: "ChatBot",
-        room,
-      });
-    }, 800);
+    // Removed setTimeout to avoid performance issues with many messages
+    await addDoc(messagesRef, {
+      text: getBotReply(userMsg),
+      createdAt: serverTimestamp(),
+      user: "ChatBot",
+      room,
+    });
   }
 
   // Show loading while determining auth state
@@ -53,15 +54,27 @@ function AppRouter() {
   return (
     <AppWrapper dark={dark} setDark={setDark}>
       <Routes>
-        {/* Auth route - redirect to rooms if already authenticated */}
+        {/* Landing page route - show to authenticated users */}
         <Route
-          path="/auth"
+          path="/"
           element={
-            isAuthenticated ? <Navigate to="/rooms" replace /> : <Auth />
+            isAuthenticated ? (
+              <ProtectedRoute>
+                <LandingPage />
+              </ProtectedRoute>
+            ) : (
+              <LandingPage />
+            )
           }
         />
 
-        {/* Protected room selection route */}
+        {/* Auth route - redirect to landing page if already authenticated */}
+        <Route
+          path="/auth"
+          element={isAuthenticated ? <Navigate to="/" replace /> : <Auth />}
+        />
+
+        {/* Protected room selection route - ADD THIS */}
         <Route
           path="/rooms"
           element={
@@ -81,11 +94,22 @@ function AppRouter() {
           }
         />
 
-        {/* Landing page route */}
+        {/* Protected about route */}
         <Route
-          path="/"
+          path="/about"
           element={
-            isAuthenticated ? <Navigate to="/rooms" replace /> : <LandingPage />
+            <ProtectedRoute>
+              <About dark={dark} />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile dark={dark} />
+            </ProtectedRoute>
           }
         />
 
