@@ -8,24 +8,40 @@ import { MdDelete } from "react-icons/md";
 import ReactMarkdown from "react-markdown";
 import trainingData from "../lib/trainingData.json";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { db } from "../firebase-config";
+
+import { MessagesSkeleton } from "./LoadingComponents";
 import {
   collection,
-  addDoc,
   onSnapshot,
   query,
   orderBy,
+  addDoc,
   serverTimestamp,
   deleteDoc,
   doc,
 } from "firebase/firestore";
+import { db, rtdb } from "../firebase-config";
+import {
+  ref,
+  onValue,
+  onDisconnect,
+  set,
+  serverTimestamp as rtdbServerTimestamp,
+} from "firebase/database";
 
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+// Utility: detect device type
+function getDeviceType() {
+  const ua = navigator.userAgent.toLowerCase();
+  if (/mobile|android|iphone|ipad|ipod/.test(ua)) return "mobile";
+  return "desktop";
+}
 
 async function getGeminiResponse(message, context) {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
     const prompt = `
 You are a helpful AI chat assistant. Maintain natural conversation flow.
 
@@ -34,26 +50,16 @@ User's message: ${message}
 Conversation context:
 ${context.map((m) => `${m.user}: ${m.text}`).join("\n")}
     `;
-
     const result = await model.generateContent(prompt);
-
-    const text =
+    return (
       result?.response?.candidates?.[0]?.content?.parts?.[0]?.text ??
       result?.response?.text() ??
-      "";
-
-    return text;
+      ""
+    );
   } catch (error) {
     console.error("Gemini API Error:", error);
-    throw new Error("AI service is currently unavailable.");
+    return "⚠️ AI service is currently unavailable.";
   }
-}
-
-// Detect device type
-function getDeviceType() {
-  const ua = navigator.userAgent.toLowerCase();
-  if (/mobile|android|iphone|ipad|ipod/.test(ua)) return "mobile";
-  return "desktop";
 }
 
 export function Chat() {
@@ -61,26 +67,29 @@ export function Chat() {
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isBotReplying, setIsBotReplying] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(true);
+  const [apiStatus, setApiStatus] = useState("connecting");
+  const [onlineUsers, setOnlineUsers] = useState([]);
 
-
-  const [apiStatus, setApiStatus] = useState("checking");
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
 
-
+  // Auto-scroll
   const scrollToBottom = () => {
     const container = messagesContainerRef.current;
     if (container) {
-      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+      const isNearBottom =
+        container.scrollHeight -
+          container.scrollTop -
+          container.clientHeight <
+        100;
       if (isNearBottom) {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
       }
     }
   };
-
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
@@ -88,12 +97,10 @@ export function Chat() {
   // Firestore listener for messages
   useEffect(() => {
     if (!roomId) return;
-
     const q = query(
       collection(db, `rooms/${roomId}/messages`),
       orderBy("timestamp", "asc")
     );
-
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const newMessages = snapshot.docs.map((doc) => ({
         id: doc.id,
@@ -103,9 +110,56 @@ export function Chat() {
       setMessages(newMessages);
       setLoadingMessages(false);
     });
-
     return () => unsubscribe();
   }, [roomId, user?.uid]);
+
+  // Presence tracking
+  useEffect(() => {
+    if (!roomId || !user) return;
+
+    const presenceRef = ref(rtdb, `rooms/${roomId}/presence/${user.uid}`);
+    const connectedRef = ref(rtdb, ".info/connected");
+
+    const unsubscribeConnected = onValue(connectedRef, (snap) => {
+      if (snap.val() === true) {
+        set(presenceRef, {
+          online: true,
+          displayName: user.displayName || "Anonymous",
+          lastSeen: rtdbServerTimestamp(),
+        });
+        onDisconnect(presenceRef).set({
+          online: false,
+          displayName: user.displayName || "Anonymous",
+          lastSeen: rtdbServerTimestamp(),
+        });
+      }
+    });
+
+    const roomPresenceRef = ref(rtdb, `rooms/${roomId}/presence`);
+    const unsubscribePresence = onValue(roomPresenceRef, (snapshot) => {
+      const users = [];
+      snapshot.forEach((childSnap) => {
+        const data = childSnap.val();
+        if (data && data.online) {
+          users.push({
+            uid: childSnap.key,
+            displayName: data.displayName,
+          });
+        }
+      });
+      setOnlineUsers(users);
+    });
+
+    return () => {
+      unsubscribeConnected();
+      unsubscribePresence();
+      set(presenceRef, {
+        online: false,
+        displayName: user.displayName || "Anonymous",
+        lastSeen: rtdbServerTimestamp(),
+      });
+    };
+  }, [roomId, user]);
 
   // Send message
   const handleSend = async () => {
@@ -118,38 +172,29 @@ export function Chat() {
       timestamp: serverTimestamp(),
       deviceType: getDeviceType(),
     };
-     await addDoc(collection(db,`rooms/${roomId}/messages`), newMessageObj); 
-    setInput(""); 
-    await sendBotReply( input, roomId, messages ); 
-    scrollToBottom(); 
+
+    await addDoc(collection(db, `rooms/${roomId}/messages`), newMessageObj);
+    const currentMessage = input;
+    setInput("");
+
+    await sendBotReply(currentMessage, roomId, messages);
+    scrollToBottom();
   };
-
-
-
-  const MessageItem = ({ index, style }) => {
-    const message = messages[index];
-    return (
-      <div style={style} className="p-2 border-b">
-        <strong>{message.user}:</strong> {message.text}
-      </div>
-    )
-   
-  };
-
 
   // Delete message
-  const handleDelete = async (messageId) => {
+  const handleDeleteMessage = async (messageId) => {
     try {
-      await deleteDoc(doc(db, `rooms/${roomId}/messages`, messageId));
+      const messageDocRef = doc(db, `rooms/${roomId}/messages`, messageId);
+      await deleteDoc(messageDocRef);
     } catch (error) {
-      console.error("Error deleting message:", error);
-      alert("Failed to delete message. Please try again.");
+      console.error("Error deleting message: ", error);
+      alert("Failed to delete the message. Please try again.");
     }
   };
 
-
+  // Emoji picker
   const handleEmojiClick = (emojiObject) => {
-    setInput(prev => prev + emojiObject.emoji);
+    setInput((prev) => prev + emojiObject.emoji);
     setShowEmojiPicker(false);
   };
 
@@ -174,20 +219,9 @@ export function Chat() {
         isAI: true,
         deviceType: "bot",
       };
-
+      await addDoc(collection(db, `rooms/${roomId}/messages`), aiMessage);
     } catch (error) {
       console.error("Error getting AI response:", error);
-
-      const fallbackMessage = {
-        userId: "AI",
-        user: "AI Assistant",
-        text:
-          "⚠️ AI service is unavailable. Please try again later, or continue chatting.",
-        timestamp: serverTimestamp(),
-        isAI: true,
-      };
-
-      await addDoc(collection(db, `rooms/${roomId}/messages`), aiMessage);
     } finally {
       setIsBotReplying(false);
     }
@@ -201,10 +235,8 @@ export function Chat() {
           "Welcome to the General chat room! Feel free to discuss anything here. 💬",
         "Tech Talk":
           "Welcome to Tech Talk! Let's dive into all things technology. 💻",
-        Random:
-          "Welcome to Random! Expect the unexpected here! 🎲",
-        Gaming:
-          "Welcome to Gaming! Ready to talk about your favorite games? 🎮",
+        Random: "Welcome to Random! Expect the unexpected here! 🎲",
+        Gaming: "Welcome to Gaming! Ready to talk about your favorite games? 🎮",
       };
 
       const welcomeMessage =
@@ -231,15 +263,49 @@ export function Chat() {
     }
   }, [roomId, apiStatus]);
 
+  // Render online users list
+  const renderOnlineUsers = () => {
+    if (onlineUsers.length === 0) {
+      return (
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          No users online
+        </p>
+      );
+    }
+    return (
+      <ul className="flex space-x-4 overflow-x-auto py-2">
+        {onlineUsers.map((user) => (
+          <li key={user.uid} className="flex items-center space-x-2">
+            <span
+              className="inline-block w-3 h-3 rounded-full bg-green-500"
+              title="Online"
+            ></span>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {user.displayName}
+            </span>
+          </li>
+        ))}
+      </ul>
+    );
+  };
+
   return (
-    <div className="flex flex-col h-screen">
-      {/* Chat Messages */}
-      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-100">
+    <div className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900">
+      {/* Header */}
+      <div className="bg-white dark:bg-gray-800 p-4 shadow">
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+          Chat Room: {roomId}
+        </h1>
+        <div className="mt-2">{renderOnlineUsers()}</div>
+      </div>
+
+      {/* Messages */}
+      <div
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto p-4 space-y-2"
+      >
         {loadingMessages ? (
-          <div className="flex justify-center items-center h-full">
-            <div className="w-8 h-8 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin" />
-            <span className="ml-2 text-gray-600">Loading messages...</span>
-          </div>
+          <MessagesSkeleton />
         ) : (
           messages.map((msg) => (
             <div
@@ -253,17 +319,28 @@ export function Chat() {
                   : "bg-white self-start"
               )}
             >
-              <strong>{msg.user}: </strong>
+              <div className="flex justify-between items-center">
+                <strong>{msg.user}: </strong>
+                {!msg.isAI && msg.isCurrentUser && (
+                  <button
+                    onClick={() => handleDeleteMessage(msg.id)}
+                    className="text-red-500 text-xs"
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
               <ReactMarkdown>{msg.text}</ReactMarkdown>
 
               {msg.isCurrentUser && !msg.isAI && !msg.isWelcome && (
                 <button
-                  onClick={() => handleDelete(msg.id)}
+                  onClick={() => handleDeleteMessage(msg.id)}
                   title="Delete message"
                   className="absolute top-1 right-1 text-red-600 hover:text-red-800"
                 >
                   <MdDelete size={18} />
                 </button>
+              )}
 
               {msg.deviceType && (
                 <div className="text-xs text-gray-500 mt-1">
@@ -271,7 +348,6 @@ export function Chat() {
                   {msg.deviceType === "desktop" && "💻 Desktop"}
                   {msg.deviceType === "bot" && "🤖 Bot"}
                 </div>
-
               )}
             </div>
           ))
@@ -284,11 +360,8 @@ export function Chat() {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="input-container relative">
-
-
-      {/* Input Area */}
-      <div className="p-4 bg-white flex items-center space-x-2 border-t">
+      {/* Input */}
+      <div className="p-4 bg-white flex items-center space-x-2 border-t relative">
         <button
           onClick={() => setShowEmojiPicker(!showEmojiPicker)}
           className="p-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
@@ -298,11 +371,10 @@ export function Chat() {
           <IoMdHappy size={20} />
         </button>
         {showEmojiPicker && (
-          <div className="absolute bottom-full right-0 mb-2 z-10">
+          <div className="absolute bottom-full left-4 mb-2 z-10">
             <EmojiPicker onEmojiClick={handleEmojiClick} />
           </div>
         )}
-
         <input
           className="flex-1 border rounded-lg p-2"
           value={input}
@@ -312,36 +384,15 @@ export function Chat() {
           disabled={isBotReplying}
         />
         <button
-
-          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-          className="ml-2 p-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
-          title="Add emoji"
-        >
-          <IoMdHappy size={20} />
-        </button>
-        <button 
           onClick={handleSend}
           className="bg-blue-500 text-white px-4 py-2 rounded-lg"
           disabled={isBotReplying}
         >
-          {isBotReplying ? (
-            <span className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-transparent border-t-white rounded-full animate-spin" />
-              <span>AI Thinking...</span>
-            </span>
-          ) : (
-            'Send'
-          )}
-
-
+          {isBotReplying ? "AI Thinking..." : "Send"}
         </button>
-        {showEmojiPicker && (
-          <div className="absolute bottom-full right-0 mb-2 z-10">
-            <EmojiPicker onEmojiClick={handleEmojiClick} />
-          </div>
-        )}
       </div>
-    </div>
     </div>
   );
 }
+
+export default Chat;
