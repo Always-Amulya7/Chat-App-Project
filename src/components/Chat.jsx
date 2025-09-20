@@ -4,6 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { cn } from "../lib/utils";
 import EmojiPicker from "emoji-picker-react";
 import { IoMdHappy } from "react-icons/io";
+import { MdDelete } from "react-icons/md";
 import ReactMarkdown from "react-markdown";
 import trainingData from "../lib/trainingData.json";
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -16,8 +17,8 @@ import {
   orderBy,
   addDoc,
   serverTimestamp,
-  doc,
   deleteDoc,
+  doc,
 } from "firebase/firestore";
 import { db, rtdb } from "../firebase-config";
 import {
@@ -310,7 +311,7 @@ export function Chat() {
             <div
               key={msg.id}
               className={cn(
-                "p-2 rounded-lg max-w-lg",
+                "p-2 rounded-lg max-w-lg relative",
                 msg.isAI
                   ? "bg-blue-100 self-start"
                   : msg.isCurrentUser
@@ -330,6 +331,17 @@ export function Chat() {
                 )}
               </div>
               <ReactMarkdown>{msg.text}</ReactMarkdown>
+
+              {msg.isCurrentUser && !msg.isAI && !msg.isWelcome && (
+                <button
+                  onClick={() => handleDeleteMessage(msg.id)}
+                  title="Delete message"
+                  className="absolute top-1 right-1 text-red-600 hover:text-red-800"
+                >
+                  <MdDelete size={18} />
+                </button>
+              )}
+
               {msg.deviceType && (
                 <div className="text-xs text-gray-500 mt-1">
                   {msg.deviceType === "mobile" && "📱 Mobile"}
