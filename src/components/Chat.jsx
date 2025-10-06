@@ -10,16 +10,19 @@ import trainingData from "../lib/trainingData.json";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 import { MessagesSkeleton } from "./LoadingComponents";
-import {
-  collection,
-  onSnapshot,
-  query,
-  orderBy,
-  addDoc,
-  serverTimestamp,
-  deleteDoc,
-  doc,
-} from "firebase/firestore";
+     import {
+       collection,
+       onSnapshot,
+       query,
+       orderBy,
+       addDoc,
+       serverTimestamp,
+       deleteDoc,
+       doc,          
+       updateDoc,    // New—for updating the message
+       arrayUnion,   // New—for appending to editHistory array
+     } from "firebase/firestore";
+     
 import { db, rtdb } from "../firebase-config";
 import {
   ref,
@@ -193,14 +196,35 @@ export function Chat() {
       alert("Failed to delete the message. Please try again.");
     }
   };
-       // New: Placeholder for edit functionality (full implementation in next phase)
-     const handleEdit = (messageId, currentText) => {
-       const newText = prompt("Edit your message:", currentText);
-       if (newText && newText !== currentText) {
-         console.log(`Would edit message ${messageId} to: "${newText}"`);
-        
+         
+         
+         const handleEdit = async (messageId, currentText) => {
+     const newText = prompt("Edit your message:", currentText);
+     if (newText && newText !== currentText) {
+       try {
+         // Create reference to the specific message document
+         const messageRef = doc(db, `rooms/${roomId}/messages`, messageId);
+         
+         // Update the document in Firestore
+         await updateDoc(messageRef, {
+           text: newText,  // Replace with new text
+           edited: true,   // Mark as edited
+           editHistory: arrayUnion({  // Append old version to history (no duplicates)
+             text: currentText,
+             editedAt: new Date().toISOString()  // Fixed: Client-side timestamp (ISO string, e.g., "2023-10-01T12:00:00.000Z")
+           })
+         });
+         
+         console.log("Message edited successfully! ID:", messageId);
+         // Local UI auto-updates via onSnapshot—no need for setMessages
+       } catch (error) {
+         console.error("Edit failed:", error);
+         alert("Failed to edit message. Please try again.");
        }
-     };
+     }
+   };
+   
+   
      
 
   // Emoji picker
@@ -353,6 +377,11 @@ export function Chat() {
    </div>
    
               <ReactMarkdown>{msg.text}</ReactMarkdown>
+                 
+     {msg.edited && (  // New: Show label only if edited (from Firestore)
+       <span className="text-xs text-gray-500 italic ml-2">(Edited)</span>
+     )}
+     
 
               {msg.isCurrentUser && !msg.isAI && !msg.isWelcome && (
                 <button
