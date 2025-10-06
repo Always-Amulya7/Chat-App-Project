@@ -165,13 +165,15 @@ export function Chat() {
   const handleSend = async () => {
     if (!input.trim()) return;
 
-    const newMessageObj = {
+      const newMessageObj = {
       userId: user?.uid,
       user: user?.displayName || "Anonymous",
       text: input,
       timestamp: serverTimestamp(),
       deviceType: getDeviceType(),
-    };
+      edited: false,  // New: False for original messages
+       editHistory: [] // New: Empty array for old versions, e.g., [{text: "old", editedAt: timestamp}]
+     };
 
     await addDoc(collection(db, `rooms/${roomId}/messages`), newMessageObj);
     const currentMessage = input;
@@ -191,6 +193,15 @@ export function Chat() {
       alert("Failed to delete the message. Please try again.");
     }
   };
+       // New: Placeholder for edit functionality (full implementation in next phase)
+     const handleEdit = (messageId, currentText) => {
+       const newText = prompt("Edit your message:", currentText);
+       if (newText && newText !== currentText) {
+         console.log(`Would edit message ${messageId} to: "${newText}"`);
+        
+       }
+     };
+     
 
   // Emoji picker
   const handleEmojiClick = (emojiObject) => {
@@ -320,16 +331,27 @@ export function Chat() {
               )}
             >
               <div className="flex justify-between items-center">
-                <strong>{msg.user}: </strong>
-                {!msg.isAI && msg.isCurrentUser && (
-                  <button
-                    onClick={() => handleDeleteMessage(msg.id)}
-                    className="text-red-500 text-xs"
-                  >
-                    Delete
-                  </button>
-                )}
-              </div>
+     <strong>{msg.user}: </strong>
+     {!msg.isAI && msg.isCurrentUser  && (
+       <div className="flex space-x-2">  {/* New: Wrapper for buttons with spacing */}
+         {/* Added hover for better UX */}
+         <button
+           onClick={() => handleDeleteMessage(msg.id)}
+           className="text-red-500 text-xs hover:text-red-700"
+         >
+           Delete
+         </button>
+         {/* New: Edit button */}
+         <button
+           onClick={() => handleEdit(msg.id, msg.text)}
+           className="text-blue-500 text-xs hover:text-blue-700"
+         >
+           Edit
+         </button>
+       </div>
+     )}
+   </div>
+   
               <ReactMarkdown>{msg.text}</ReactMarkdown>
 
               {msg.isCurrentUser && !msg.isAI && !msg.isWelcome && (
