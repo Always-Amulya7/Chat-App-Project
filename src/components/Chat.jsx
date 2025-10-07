@@ -21,6 +21,7 @@ import { MessagesSkeleton } from "./LoadingComponents";
        doc,          
        updateDoc,    // New—for updating the message
        arrayUnion,   // New—for appending to editHistory array
+       getDoc,       // New—for fetching timestamp in handleEdit time check
      } from "firebase/firestore";
      
 import { db, rtdb } from "../firebase-config";
@@ -198,7 +199,21 @@ export function Chat() {
   };
          
          
-         const handleEdit = async (messageId, currentText) => {
+            const handleEdit = async (messageId, currentText) => {
+     // New: Double-check time limit (fetches latest from Firestore)
+     try {
+       const messageDoc = await getDoc(doc(db, `rooms/${roomId}/messages`, messageId));
+       const timestamp = messageDoc.data()?.timestamp;
+       if (!isEditable(timestamp)) {
+         alert("Cannot edit: Messages can only be edited within 5 minutes.");
+         return;  // Exit early—no prompt
+       }
+     } catch (error) {
+       console.error("Failed to check edit time:", error);
+       alert("Cannot verify edit eligibility. Please try again.");
+       return;
+     }
+
      const newText = prompt("Edit your message:", currentText);
      if (newText && newText !== currentText) {
        try {
@@ -211,7 +226,7 @@ export function Chat() {
            edited: true,   // Mark as edited
            editHistory: arrayUnion({  // Append old version to history (no duplicates)
              text: currentText,
-             editedAt: new Date().toISOString()  // Fixed: Client-side timestamp (ISO string, e.g., "2023-10-01T12:00:00.000Z")
+             editedAt: new Date().toISOString()  // Fixed: Client-side timestamp (ISO string)
            })
          });
          
@@ -222,6 +237,15 @@ export function Chat() {
          alert("Failed to edit message. Please try again.");
        }
      }
+   };
+   
+      // New: Check if message is editable (within 5 minutes)
+   const isEditable = (timestamp) => {
+     if (!timestamp) return false;  // Old messages without timestamp (can't edit)
+     const messageTime = timestamp.toDate();  // Convert Firestore Timestamp to JS Date
+     const now = new Date();
+     const fiveMinutes = 5 * 60 * 1000;  // 5 minutes in milliseconds
+     return (now - messageTime) < fiveMinutes;
    };
    
    
@@ -354,27 +378,28 @@ export function Chat() {
                   : "bg-white self-start"
               )}
             >
-              <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center">
      <strong>{msg.user}: </strong>
-     {!msg.isAI && msg.isCurrentUser  && (
-       <div className="flex space-x-2">  {/* New: Wrapper for buttons with spacing */}
-         {/* Added hover for better UX */}
+     {!msg.isAI && msg.isCurrentUser  && (  // Outer: Only for own non-AI messages
+       <div className="flex space-x-2">
          <button
            onClick={() => handleDeleteMessage(msg.id)}
            className="text-red-500 text-xs hover:text-red-700"
          >
            Delete
          </button>
-         {/* New: Edit button */}
-         <button
-           onClick={() => handleEdit(msg.id, msg.text)}
-           className="text-blue-500 text-xs hover:text-blue-700"
-         >
-           Edit
-         </button>
+         {isEditable(msg.timestamp) && (  // Inner: Only if within time limit
+           <button
+             onClick={() => handleEdit(msg.id, msg.text)}
+             className="text-blue-500 text-xs hover:text-blue-700"
+           >
+             Edit
+           </button>
+         )}
        </div>
      )}
    </div>
+   
    
               <ReactMarkdown>{msg.text}</ReactMarkdown>
                  
@@ -382,16 +407,6 @@ export function Chat() {
        <span className="text-xs text-gray-500 italic ml-2">(Edited)</span>
      )}
      
-
-              {msg.isCurrentUser && !msg.isAI && !msg.isWelcome && (
-                <button
-                  onClick={() => handleDeleteMessage(msg.id)}
-                  title="Delete message"
-                  className="absolute top-1 right-1 text-red-600 hover:text-red-800"
-                >
-                  <MdDelete size={18} />
-                </button>
-              )}
 
               {msg.deviceType && (
                 <div className="text-xs text-gray-500 mt-1">
