@@ -10,16 +10,20 @@ import trainingData from "../lib/trainingData.json";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 import { MessagesSkeleton } from "./LoadingComponents";
-import {
-  collection,
-  onSnapshot,
-  query,
-  orderBy,
-  addDoc,
-  serverTimestamp,
-  deleteDoc,
-  doc,
-} from "firebase/firestore";
+     import {
+       collection,
+       onSnapshot,
+       query,
+       orderBy,
+       addDoc,
+       serverTimestamp,
+       deleteDoc,
+       doc,          
+       updateDoc,    // New—for updating the message
+       arrayUnion,   // New—for appending to editHistory array
+       getDoc,       // New—for fetching timestamp in handleEdit time check
+     } from "firebase/firestore";
+     
 import { db, rtdb } from "../firebase-config";
 import {
   ref,
@@ -72,6 +76,7 @@ export function Chat() {
   const [loadingMessages, setLoadingMessages] = useState(true);
   const [apiStatus, setApiStatus] = useState("connecting");
   const [onlineUsers, setOnlineUsers] = useState([]);
+  const [showHistory, setShowHistory] = useState({ show: false, messageId: null, history: [] });
 
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
@@ -165,13 +170,15 @@ export function Chat() {
   const handleSend = async () => {
     if (!input.trim()) return;
 
-    const newMessageObj = {
+      const newMessageObj = {
       userId: user?.uid,
       user: user?.displayName || "Anonymous",
       text: input,
       timestamp: serverTimestamp(),
       deviceType: getDeviceType(),
-    };
+      edited: false,  // New: False for original messages
+       editHistory: [] // New: Empty array for old versions, e.g., [{text: "old", editedAt: timestamp}]
+     };
 
     await addDoc(collection(db, `rooms/${roomId}/messages`), newMessageObj);
     const currentMessage = input;
@@ -191,6 +198,59 @@ export function Chat() {
       alert("Failed to delete the message. Please try again.");
     }
   };
+         
+         
+            const handleEdit = async (messageId, currentText) => {
+     // New: Double-check time limit (fetches latest from Firestore)
+     try {
+       const messageDoc = await getDoc(doc(db, `rooms/${roomId}/messages`, messageId));
+       const timestamp = messageDoc.data()?.timestamp;
+       if (!isEditable(timestamp)) {
+         alert("Cannot edit: Messages can only be edited within 5 minutes.");
+         return;  // Exit early—no prompt
+       }
+     } catch (error) {
+       console.error("Failed to check edit time:", error);
+       alert("Cannot verify edit eligibility. Please try again.");
+       return;
+     }
+
+     const newText = prompt("Edit your message:", currentText);
+     if (newText && newText !== currentText) {
+       try {
+         // Create reference to the specific message document
+         const messageRef = doc(db, `rooms/${roomId}/messages`, messageId);
+         
+         // Update the document in Firestore
+         await updateDoc(messageRef, {
+           text: newText,  // Replace with new text
+           edited: true,   // Mark as edited
+           editHistory: arrayUnion({  // Append old version to history (no duplicates)
+             text: currentText,
+             editedAt: new Date().toISOString()  // Fixed: Client-side timestamp (ISO string)
+           })
+         });
+         
+         console.log("Message edited successfully! ID:", messageId);
+         // Local UI auto-updates via onSnapshot—no need for setMessages
+       } catch (error) {
+         console.error("Edit failed:", error);
+         alert("Failed to edit message. Please try again.");
+       }
+     }
+   };
+   
+      // New: Check if message is editable (within 5 minutes)
+   const isEditable = (timestamp) => {
+     if (!timestamp) return false;  // Old messages without timestamp (can't edit)
+     const messageTime = timestamp.toDate();  // Convert Firestore Timestamp to JS Date
+     const now = new Date();
+     const fiveMinutes = 5 * 60 * 1000;  // 5 minutes in milliseconds
+     return (now - messageTime) < fiveMinutes;
+   };
+   
+   
+     
 
   // Emoji picker
   const handleEmojiClick = (emojiObject) => {
@@ -319,28 +379,43 @@ export function Chat() {
                   : "bg-white self-start"
               )}
             >
-              <div className="flex justify-between items-center">
-                <strong>{msg.user}: </strong>
-                {!msg.isAI && msg.isCurrentUser && (
-                  <button
-                    onClick={() => handleDeleteMessage(msg.id)}
-                    className="text-red-500 text-xs"
-                  >
-                    Delete
-                  </button>
-                )}
-              </div>
+                <div className="flex space-x-2">
+       <button
+         onClick={() => handleDeleteMessage(msg.id)}
+         className="text-red-500 text-xs hover:text-red-700"
+       >
+         Delete
+       </button>
+       {isEditable(msg.timestamp) && (
+         <button
+           onClick={() => handleEdit(msg.id, msg.text)}
+           className="text-blue-500 text-xs hover:text-blue-700"
+         >
+           Edit
+         </button>
+       )}
+       {msg.editHistory && msg.editHistory.length > 0 && (  // New: Show only if history exists
+         <button
+           onClick={() => setShowHistory({ 
+             show: true, 
+             messageId: msg.id, 
+             history: msg.editHistory 
+           })}
+           className="text-purple-500 text-xs hover:text-purple-700"
+         >
+           History
+         </button>
+       )}
+     </div>
+     
+   
+   
               <ReactMarkdown>{msg.text}</ReactMarkdown>
-
-              {msg.isCurrentUser && !msg.isAI && !msg.isWelcome && (
-                <button
-                  onClick={() => handleDeleteMessage(msg.id)}
-                  title="Delete message"
-                  className="absolute top-1 right-1 text-red-600 hover:text-red-800"
-                >
-                  <MdDelete size={18} />
-                </button>
-              )}
+                 
+     {msg.edited && (  // New: Show label only if edited (from Firestore)
+       <span className="text-xs text-gray-500 italic ml-2">(Edited)</span>
+     )}
+     
 
               {msg.deviceType && (
                 <div className="text-xs text-gray-500 mt-1">
@@ -375,6 +450,39 @@ export function Chat() {
             <EmojiPicker onEmojiClick={handleEmojiClick} />
           </div>
         )}
+             {/* New: Edit History Modal */}
+     {showHistory.show && (
+       <div 
+         className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+         onClick={(e) => {  // New: Close on outside click
+           if (e.target === e.currentTarget) {
+             setShowHistory({ show: false, messageId: null, history: [] });
+           }
+         }}
+       >
+         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
+           <h3 className="text-lg font-bold mb-4 text-gray-900 dark:text-white">Edit History</h3>
+           <ul className="space-y-2 mb-4">
+             {showHistory.history.map((entry, index) => (
+               <li key={index} className="text-sm text-gray-700 dark:text-gray-300">
+                 <strong>Version {index + 1}:</strong> "{entry.text}" 
+                 <br />
+                 <span className="text-xs text-gray-500 italic">
+                   Edited at {new Date(entry.editedAt).toLocaleString()}
+                 </span>
+               </li>
+             ))}
+           </ul>
+           <button
+             onClick={() => setShowHistory({ show: false, messageId: null, history: [] })}
+             className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded w-full"
+           >
+             Close
+           </button>
+         </div>
+       </div>
+     )}
+     
         <input
           className="flex-1 border rounded-lg p-2"
           value={input}
