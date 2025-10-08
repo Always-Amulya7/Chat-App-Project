@@ -76,6 +76,7 @@ export function Chat() {
   const [loadingMessages, setLoadingMessages] = useState(true);
   const [apiStatus, setApiStatus] = useState("connecting");
   const [onlineUsers, setOnlineUsers] = useState([]);
+  const [showHistory, setShowHistory] = useState({ show: false, messageId: null, history: [] });
 
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
@@ -378,27 +379,35 @@ export function Chat() {
                   : "bg-white self-start"
               )}
             >
-            <div className="flex justify-between items-center">
-     <strong>{msg.user}: </strong>
-     {!msg.isAI && msg.isCurrentUser  && (  // Outer: Only for own non-AI messages
-       <div className="flex space-x-2">
+                <div className="flex space-x-2">
+       <button
+         onClick={() => handleDeleteMessage(msg.id)}
+         className="text-red-500 text-xs hover:text-red-700"
+       >
+         Delete
+       </button>
+       {isEditable(msg.timestamp) && (
          <button
-           onClick={() => handleDeleteMessage(msg.id)}
-           className="text-red-500 text-xs hover:text-red-700"
+           onClick={() => handleEdit(msg.id, msg.text)}
+           className="text-blue-500 text-xs hover:text-blue-700"
          >
-           Delete
+           Edit
          </button>
-         {isEditable(msg.timestamp) && (  // Inner: Only if within time limit
-           <button
-             onClick={() => handleEdit(msg.id, msg.text)}
-             className="text-blue-500 text-xs hover:text-blue-700"
-           >
-             Edit
-           </button>
-         )}
-       </div>
-     )}
-   </div>
+       )}
+       {msg.editHistory && msg.editHistory.length > 0 && (  // New: Show only if history exists
+         <button
+           onClick={() => setShowHistory({ 
+             show: true, 
+             messageId: msg.id, 
+             history: msg.editHistory 
+           })}
+           className="text-purple-500 text-xs hover:text-purple-700"
+         >
+           History
+         </button>
+       )}
+     </div>
+     
    
    
               <ReactMarkdown>{msg.text}</ReactMarkdown>
@@ -441,6 +450,39 @@ export function Chat() {
             <EmojiPicker onEmojiClick={handleEmojiClick} />
           </div>
         )}
+             {/* New: Edit History Modal */}
+     {showHistory.show && (
+       <div 
+         className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+         onClick={(e) => {  // New: Close on outside click
+           if (e.target === e.currentTarget) {
+             setShowHistory({ show: false, messageId: null, history: [] });
+           }
+         }}
+       >
+         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
+           <h3 className="text-lg font-bold mb-4 text-gray-900 dark:text-white">Edit History</h3>
+           <ul className="space-y-2 mb-4">
+             {showHistory.history.map((entry, index) => (
+               <li key={index} className="text-sm text-gray-700 dark:text-gray-300">
+                 <strong>Version {index + 1}:</strong> "{entry.text}" 
+                 <br />
+                 <span className="text-xs text-gray-500 italic">
+                   Edited at {new Date(entry.editedAt).toLocaleString()}
+                 </span>
+               </li>
+             ))}
+           </ul>
+           <button
+             onClick={() => setShowHistory({ show: false, messageId: null, history: [] })}
+             className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded w-full"
+           >
+             Close
+           </button>
+         </div>
+       </div>
+     )}
+     
         <input
           className="flex-1 border rounded-lg p-2"
           value={input}
