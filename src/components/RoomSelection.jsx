@@ -1,14 +1,60 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { rtdb } from "../firebase-config";
+import { ref, onValue } from "firebase/database";
 
 export const RoomSelection = ({ dark }) => {
   const [room, setRoom] = useState("");
   const [isAnimated, setIsAnimated] = useState(false);
+  const [roomStats, setRoomStats] = useState({}); // NEW: Track online users per room
   const navigate = useNavigate();
 
   useEffect(() => {
     setIsAnimated(true);
   }, []);
+
+  // NEW: Listen to presence data for all popular rooms
+ useEffect(() => {
+  const popularRooms = ["General", "Tech Talk", "Random", "Gaming"];
+  const unsubscribers = [];
+
+  popularRooms.forEach((roomName) => {
+    const presenceRef = ref(rtdb, `rooms/${roomName}/presence`);
+
+    const unsubscribe = onValue(presenceRef, (snapshot) => {
+      let onlineCount = 0;
+
+      if (!snapshot.exists()) {
+        console.log(`No presence data for room: ${roomName}`);
+      }
+
+      snapshot.forEach((childSnap) => {
+        
+        const data = childSnap.val();
+        console.log(`[${roomName}] Child Data:`, data);
+
+        // Flexible check: boolean true or string "true"
+        if (data?.online === true || data?.online === "true") {
+          onlineCount++;
+        }
+      });
+
+      console.log(`[${roomName}] Online Count:`, onlineCount);
+
+      // Update state
+      setRoomStats((prev) => ({
+        ...prev,
+        [roomName]: onlineCount,
+      }));
+    });
+
+    unsubscribers.push(unsubscribe);
+  });
+
+  return () => {
+    unsubscribers.forEach((unsub) => unsub());
+  };
+}, []);
 
   const handleEnterChat = () => {
     if (room.trim()) {
@@ -129,9 +175,20 @@ export const RoomSelection = ({ dark }) => {
                     <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                     <div className="relative flex items-center gap-4">
                       <div className="text-3xl">{roomData.icon}</div>
-                      <div className="text-left">
+                      <div className="text-left flex-1">
                         <h4 className="font-semibold text-lg">{roomData.name}</h4>
-                        <p className="text-white/80 text-sm">Join the conversation</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          {roomStats[roomData.name] > 0 ? (
+                            <>
+                              <span className="inline-block w-2 h-2 bg-green-300 rounded-full animate-pulse"></span>
+                              <p className="text-white/90 text-sm">
+                                {roomStats[roomData.name]} {roomStats[roomData.name] === 1 ? 'user' : 'users'} online
+                              </p>
+                            </>
+                          ) : (
+                            <p className="text-white/80 text-sm">Be the first to join!</p>
+                          )}
+                        </div>
                       </div>
                       <div className="ml-auto">
                         <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="currentColor" viewBox="0 0 20 20">
