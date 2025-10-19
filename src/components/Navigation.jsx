@@ -153,13 +153,12 @@ export const Navigation = ({ route, roomId, customTitle, dark, setDark }) => {
           )}
         </div>
 
-        {/* Theme Toggle */}
+        {/* Dark Mode Toggle Button */}
         <button
-          className="p-2 rounded-lg border border-gray-200 hover:bg-gray-100  dark:hover:bg-gray-800 transition-colors"
+          className="flex items-center justify-center p-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 text-xl"
           onClick={() => setDark?.((d) => !d)}
-          title="Toggle theme"
-          aria-label="Toggle dark mode"
-
+          title={dark ? "Switch to light mode" : "Switch to dark mode"}
+          aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
         >
           {dark ? "🌙" : "☀️"}
         </button>
